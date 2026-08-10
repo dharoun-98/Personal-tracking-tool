@@ -119,6 +119,25 @@ Everything below is optional — skip it entirely and the game still works.
    Configuration → set the Site URL, and add `<your-domain>/auth/callback` to
    Redirect URLs.
 
+### Making email links work in any browser (recommended)
+
+Supabase's default templates use `{{ .ConfirmationURL }}`, which returns a
+PKCE `?code=`. That code can only be redeemed by the **same browser that
+requested it** — the code verifier lives in that browser's cookies. Open the
+email in a different browser, another profile, or through a corporate link
+scanner and it fails.
+
+The fix is to switch the templates to the browser-independent token flow.
+Authentication → Emails, and in each template replace the link href with:
+
+```
+{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=signup
+```
+
+Use `type=magiclink` for the magic-link template, `recovery` for password
+reset, and `email_change` for email change. `/auth/callback` accepts both
+shapes, so nothing breaks while you migrate.
+
 The admin panel lives at `/command-deck` and needs `ADMIN_PASSWORD` plus an
 `ADMIN_SESSION_SECRET` of at least 24 characters. Stripe needs
 `STRIPE_SECRET_KEY`, a price id, and a webhook pointed at
