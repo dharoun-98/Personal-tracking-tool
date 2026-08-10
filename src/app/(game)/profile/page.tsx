@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Heart, RotateCcw, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Pencil, RotateCcw } from "lucide-react";
 import { MOTIVATION_STYLES, RHYTHMS, TIME_BUDGETS } from "@/lib/onboarding";
 import { levelTitle } from "@/lib/game";
 import { compactNumber } from "@/lib/format";
@@ -13,6 +14,9 @@ import { Panel, SectionTitle } from "@/components/ui/panel";
 import { Button } from "@/components/ui/button";
 import { MascotAvatar } from "@/components/mascot/mascot-avatar";
 import { InstallCard } from "@/components/shell/install-card";
+import { DocumentCard } from "@/components/documents/document-card";
+import { EmailDocuments } from "@/components/documents/email-documents";
+import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { StreakFlame } from "@/components/game/streak-flame";
 
 export default function ProfilePage() {
@@ -39,7 +43,7 @@ export default function ProfilePage() {
           <h1 className="truncate font-display text-2xl font-bold">
             {profile.displayName}
           </h1>
-          <p className="mt-0.5 text-xs text-gold">
+          <p className="mt-0.5 text-xs text-gold-ink">
             Level {level.level} · {levelTitle(level.level)}
           </p>
           <div className="mt-1.5 flex items-center gap-3">
@@ -62,7 +66,7 @@ export default function ProfilePage() {
           <p
             className={cn(
               "text-sm font-semibold",
-              trialLeft <= 3 ? "text-gold" : "text-cyan",
+              trialLeft <= 3 ? "text-gold-ink" : "text-cyan-ink",
             )}
           >
             {trialLeft > 0
@@ -81,23 +85,13 @@ export default function ProfilePage() {
       <section>
         <SectionTitle>Your documents</SectionTitle>
         <div className="space-y-2.5">
-          <DocumentCard
-            icon={FileText}
-            color="var(--color-cyan)"
-            title="Your starting report"
-            body="Where you stood across all seven domains the day you began."
-          />
-          <DocumentCard
-            icon={Heart}
-            color="var(--color-gold)"
-            title="Promise to your future self"
-            body={
-              profile.promise
-                ? `Your words, sealed for ${profile.promiseHorizonMonths} months.`
-                : "You didn't write one during setup — you can add it any time."
-            }
-          />
+          <DocumentCard kind="report" />
+          <DocumentCard kind="promise" />
+          <EmailDocuments />
         </div>
+        <p className="mt-2 px-1 text-2xs text-ink-faint">
+          Generated on your device from your own data. Nothing is uploaded.
+        </p>
       </section>
 
       {/* -------------------------------------------------------- Install */}
@@ -106,9 +100,30 @@ export default function ProfilePage() {
         <InstallCard />
       </section>
 
+      {/* ----------------------------------------------------- Appearance */}
+      <section>
+        <SectionTitle>Appearance</SectionTitle>
+        <ThemeToggle />
+        <p className="mt-2 px-1 text-2xs text-ink-faint">
+          Night is the original. Day is for bright rooms and people who prefer it.
+        </p>
+      </section>
+
       {/* ------------------------------------------------------- Settings */}
       <section>
-        <SectionTitle>Your setup</SectionTitle>
+        <SectionTitle
+          action={
+            <Link
+              href="/settings"
+              className="tappable inline-flex items-center gap-1 text-2xs font-semibold text-violet-soft"
+            >
+              <Pencil className="size-3.5" />
+              Edit
+            </Link>
+          }
+        >
+          Your setup
+        </SectionTitle>
         <Panel className="divide-y divide-hairline/60">
           <SettingRow
             label="Companion"
@@ -133,9 +148,6 @@ export default function ProfilePage() {
             value={`${profile.priorities.length} chosen`}
           />
         </Panel>
-        <p className="mt-2 px-1 text-2xs text-ink-faint">
-          Editing these lands in the next update, along with your documents.
-        </p>
       </section>
 
       {/* ----------------------------------------------------- Danger zone */}
@@ -196,35 +208,3 @@ function SettingRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function DocumentCard({
-  icon: Icon,
-  color,
-  title,
-  body,
-}: {
-  icon: typeof FileText;
-  color: string;
-  title: string;
-  body: string;
-}) {
-  return (
-    <Panel className="p-4">
-      <div className="flex items-start gap-3">
-        <span
-          className="grid size-9 shrink-0 place-items-center rounded-xl"
-          style={{ background: `color-mix(in oklab, ${color} 16%, transparent)`, color }}
-        >
-          <Icon className="size-4.5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">{title}</p>
-          <p className="mt-1 text-xs leading-relaxed text-ink-mute">{body}</p>
-          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-surface-2 px-2.5 py-1 text-2xs text-ink-faint">
-            <Sparkles className="size-3" />
-            Arriving in the next update
-          </p>
-        </div>
-      </div>
-    </Panel>
-  );
-}

@@ -17,10 +17,10 @@ import { DayHeatmap, type HeatCell } from "@/components/game/day-heatmap";
 import { StreakFlame } from "@/components/game/streak-flame";
 
 const TIERS = {
-  bronze: { label: "Bronze", color: "#C08457" },
-  silver: { label: "Silver", color: "#B8C0D9" },
-  gold: { label: "Gold", color: "#F5B301" },
-  mythic: { label: "Mythic", color: "#F45FD0" },
+  bronze: { label: "Bronze", color: "var(--color-tier-bronze)" },
+  silver: { label: "Silver", color: "var(--color-tier-silver)" },
+  gold: { label: "Gold", color: "var(--color-tier-gold)" },
+  mythic: { label: "Mythic", color: "var(--color-tier-mythic)" },
 } as const;
 
 export default function JourneyPage() {
@@ -103,7 +103,7 @@ export default function JourneyPage() {
               <p className="font-display text-4xl leading-none font-extrabold">
                 {level.level}
               </p>
-              <p className="mt-1 text-xs font-semibold text-gold">
+              <p className="mt-1 text-xs font-semibold text-gold-ink">
                 {levelTitle(level.level)}
               </p>
             </div>
@@ -192,7 +192,7 @@ export default function JourneyPage() {
               description={item.def.description}
               tier={item.def.tier}
               domainColor={
-                item.def.domain ? getDomain(item.def.domain).color : undefined
+                item.def.domain ? getDomain(item.def.domain).ink : undefined
               }
               unlocked
               justNow={recentlyUnlocked.has(item.def.id)}
@@ -206,7 +206,7 @@ export default function JourneyPage() {
                 description={item.def.description}
                 tier={item.def.tier}
                 domainColor={
-                  item.def.domain ? getDomain(item.def.domain).color : undefined
+                  item.def.domain ? getDomain(item.def.domain).ink : undefined
                 }
                 progress={item.progress}
                 progressLabel={item.label}
@@ -264,7 +264,7 @@ function AchievementTile({
       style={unlocked ? { borderColor: `color-mix(in oklab, ${color} 40%, transparent)` } : undefined}
     >
       {justNow && (
-        <span className="absolute top-2 right-2 rounded-full bg-gold px-1.5 py-0.5 text-[0.5rem] font-bold text-abyss">
+        <span className="absolute top-2 right-2 rounded-full bg-gold px-1.5 py-0.5 text-[0.5rem] font-bold text-on-accent">
           NEW
         </span>
       )}

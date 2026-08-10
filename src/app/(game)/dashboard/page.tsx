@@ -96,7 +96,7 @@ export default function DashboardPage() {
             exit={{ opacity: 0, height: 0 }}
           >
             <Panel className="border-gold/35 bg-gold/8 p-4">
-              <p className="text-sm font-semibold text-gold">Your world is live.</p>
+              <p className="text-sm font-semibold text-gold-ink">Your world is live.</p>
               <p className="mt-1 text-xs leading-relaxed text-ink-dim">
                 Tap any quest to log it — one tap is all it takes. Your report and promise
                 letter are waiting in your profile.
@@ -104,7 +104,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setWelcome(false)}
-                className="tappable mt-2.5 text-2xs font-semibold text-gold/80 underline underline-offset-2"
+                className="tappable mt-2.5 text-2xs font-semibold text-gold-ink/80 underline underline-offset-2"
               >
                 Got it
               </button>
@@ -139,7 +139,7 @@ export default function DashboardPage() {
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
               <span className="font-display text-lg font-bold">Level {level.level}</span>
-              <span className="truncate text-2xs tracking-wide text-gold uppercase">
+              <span className="truncate text-2xs tracking-wide text-gold-ink uppercase">
                 {levelTitle(level.level)}
               </span>
             </div>

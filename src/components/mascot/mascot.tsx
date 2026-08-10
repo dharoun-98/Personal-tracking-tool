@@ -135,7 +135,7 @@ export function Mascot() {
                 type="button"
                 onClick={hide}
                 aria-label="Dismiss"
-                className="tappable absolute -top-2 -left-2 grid size-6 place-items-center rounded-full border border-hairline bg-surface-2 text-ink-faint"
+                className="tappable absolute -top-2 -left-2 grid size-6 place-items-center rounded-full border border-edge bg-surface-2 text-ink-faint"
               >
                 <X className="size-3" strokeWidth={2.5} />
               </button>
@@ -164,7 +164,7 @@ export function Mascot() {
                 initial={{ opacity: 0, y: 6, scale: 0.8 }}
                 animate={{ opacity: [0, 1, 1, 0], y: -34, scale: 1 }}
                 transition={{ duration: XP_FLASH_MS / 1000, times: [0, 0.15, 0.7, 1] }}
-                className="pointer-events-none absolute -top-2 right-14 font-display text-lg font-extrabold whitespace-nowrap text-gold"
+                className="pointer-events-none absolute -top-2 right-14 font-display text-lg font-extrabold whitespace-nowrap text-gold-ink"
                 style={{ textShadow: "0 0 18px var(--color-gold)" }}
               >
                 +{pulse.xp} XP

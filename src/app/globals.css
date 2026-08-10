@@ -2,38 +2,66 @@
 
 /* ============================================================
    COSMIC RPG — design tokens
-   A night-sky canvas, seven glowing domain orbs, gold rewards.
+
+   Two themes from one set of names. Every theme-dependent value is a
+   `--c-*` variable defined per theme below; `@theme inline` maps those
+   onto Tailwind's token names so `bg-surface` resolves correctly in
+   both without a single `dark:` utility anywhere in the components.
+
+   Night is the original: a deep-space canvas with glowing orbs.
+   Day is the same cosmos at dawn — pale sky, ink, and orbs that read as
+   solid celestial bodies rather than lights in the dark. Glow does not
+   exist on a light background, so Day earns its depth from weight,
+   saturation and shadow instead.
    ============================================================ */
 
-@theme {
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+
+@theme inline {
   /* --- Canvas --------------------------------------------- */
-  --color-void: #07071a;
-  --color-abyss: #0b0b1f;
-  --color-surface: #12122e;
-  --color-surface-2: #191940;
-  --color-surface-3: #232355;
-  --color-hairline: #2c2c63;
+  --color-page: var(--c-page);
+  --color-void: var(--c-void);
+  --color-abyss: var(--c-page);
+  --color-surface: var(--c-surface);
+  --color-surface-2: var(--c-surface-2);
+  --color-surface-3: var(--c-surface-3);
+  --color-sunken: var(--c-sunken);
+  /* Decorative separators. Low contrast by design — never the only thing
+     marking a control's boundary. */
+  --color-hairline: var(--c-hairline);
+  /* Functional borders: inputs, toggles, the edge of a dormant orb. Clears
+     3:1 against its surface, as WCAG 1.4.11 requires of UI boundaries. */
+  --color-edge: var(--c-edge);
 
   /* --- Brand ---------------------------------------------- */
-  --color-violet: #6d5ef6;
-  --color-violet-soft: #8f83f8;
-  --color-violet-deep: #4a3ad4;
-  --color-cyan: #22d3ee;
-  --color-gold: #f5b301;
-  --color-gold-soft: #ffd35c;
+  --color-violet: var(--c-violet);
+  --color-violet-soft: var(--c-violet-soft);
+  --color-violet-deep: var(--c-violet-deep);
+  --color-cyan: var(--c-cyan);
+  --color-cyan-ink: var(--c-cyan-ink);
+  --color-gold: var(--c-gold);
+  --color-gold-soft: var(--c-gold-soft);
+  --color-gold-ink: var(--c-gold-ink);
+
+  /* Text placed on a saturated fill. Near-black in BOTH themes, because
+     the fills themselves stay saturated and mid-toned. */
+  --color-on-accent: #0b0b1f;
 
   /* --- Ink ------------------------------------------------ */
-  --color-ink: #eceaff;
-  --color-ink-dim: #b6b2e0;
-  --color-ink-mute: #7d79ab;
-  --color-ink-faint: #55527d;
+  --color-ink: var(--c-ink);
+  --color-ink-dim: var(--c-ink-dim);
+  --color-ink-mute: var(--c-ink-mute);
+  --color-ink-faint: var(--c-ink-faint);
 
   /* --- Feedback ------------------------------------------- */
-  --color-success: #2dd4a7;
-  --color-warn: #f5b301;
-  --color-danger: #f4557a;
+  --color-success: var(--c-success);
+  --color-warn: var(--c-warn);
+  --color-danger: var(--c-danger);
 
-  /* --- The seven domains ---------------------------------- */
+  /* --- The seven domains ----------------------------------- *
+     `--color-{id}`      the fill: identical in both themes.
+     `--color-{id}-ink`  the readable variant for text and icons.       */
   --color-health: #2dd4a7;
   --color-wealth: #f5b301;
   --color-connections: #ff7a5c;
@@ -41,6 +69,20 @@
   --color-growth: #38bdf8;
   --color-peace: #818cf8;
   --color-fun: #f45fd0;
+
+  /* --- Achievement tiers ----------------------------------- */
+  --color-tier-bronze: var(--c-tier-bronze);
+  --color-tier-silver: var(--c-tier-silver);
+  --color-tier-gold: var(--c-tier-gold);
+  --color-tier-mythic: var(--c-tier-mythic);
+
+  --color-health-ink: var(--c-health-ink);
+  --color-wealth-ink: var(--c-wealth-ink);
+  --color-connections-ink: var(--c-connections-ink);
+  --color-purpose-ink: var(--c-purpose-ink);
+  --color-growth-ink: var(--c-growth-ink);
+  --color-peace-ink: var(--c-peace-ink);
+  --color-fun-ink: var(--c-fun-ink);
 
   /* --- Type ----------------------------------------------- */
   --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
@@ -59,7 +101,141 @@
   --animate-shimmer: shimmer 2.5s linear infinite;
   --animate-rise: rise 0.5s var(--ease-out-expo) both;
   --animate-pop: pop 0.45s var(--ease-spring) both;
-  --animate-orbit: orbit 14s linear infinite;
+}
+
+/* ============================================================
+   NIGHT — the default, and the fallback when JavaScript is off
+   ============================================================ */
+
+:root,
+[data-theme="dark"] {
+  --c-page: #0b0b1f;
+  --c-void: #07071a;
+  --c-surface: #12122e;
+  --c-surface-2: #191940;
+  --c-surface-3: #232355;
+  --c-sunken: #07071a;
+  --c-hairline: #2c2c63;
+  /* In the dark a hairline already reads as an edge; no separate value needed. */
+  --c-edge: #46468f;
+  /* Both ends of the gold shimmer stay legible on a dark plate. */
+  --c-sheen-a: #f5b301;
+  --c-sheen-b: #ffd35c;
+
+  --c-violet: #6d5ef6;
+  --c-violet-soft: #8f83f8;
+  --c-violet-deep: #4a3ad4;
+  --c-cyan: #22d3ee;
+  --c-cyan-ink: #22d3ee;
+  --c-gold: #f5b301;
+  --c-gold-soft: #ffd35c;
+  --c-gold-ink: #f5b301;
+
+  /*
+   * All four clear WCAG AA (4.5:1) against the page, both card surfaces and
+   * surface-3. The earlier, dimmer values looked right but measured at 2.6:1 —
+   * pretty, and unreadable for anyone who isn't twenty-five with good eyes.
+   */
+  --c-ink: #eceaff;
+  --c-ink-dim: #c6c2ea;
+  --c-ink-mute: #a9a5d4;
+  --c-ink-faint: #8c88bc;
+
+  --c-success: #2dd4a7;
+  --c-warn: #f5b301;
+  --c-danger: #f4557a;
+
+  --c-tier-bronze: #c08457;
+  --c-tier-silver: #b8c0d9;
+  --c-tier-gold: #f5b301;
+  --c-tier-mythic: #f45fd0;
+
+  /* In the dark, the fill colour already reads as text. */
+  --c-health-ink: #2dd4a7;
+  --c-wealth-ink: #f5b301;
+  --c-connections-ink: #ff7a5c;
+  --c-purpose-ink: #a855f7;
+  --c-growth-ink: #38bdf8;
+  --c-peace-ink: #818cf8;
+  --c-fun-ink: #f45fd0;
+
+  /* Depth cues, swapped wholesale between themes. */
+  --c-panel-top: color-mix(in oklab, var(--c-surface) 92%, white 8%);
+  --c-panel-inset: rgba(255, 255, 255, 0.05);
+  --c-panel-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.9);
+  --c-orb-inset: rgba(255, 255, 255, 0.12);
+  --c-glow-strength: 1;
+  --c-star-opacity: 1;
+}
+
+/* ============================================================
+   DAY — the same cosmos at dawn
+   ============================================================ */
+
+[data-theme="light"] {
+  --c-page: #f6f5fa;
+  --c-void: #ecebf4;
+  --c-surface: #ffffff;
+  --c-surface-2: #f0eef8;
+  --c-surface-3: #e2dff0;
+  --c-sunken: #eeecf6;
+  --c-hairline: #dcd8ec;
+  --c-edge: #8c7cb6;
+  /*
+   * The shimmer runs between two *dark* golds in Day.
+   * `.gold-sheen` paints text with a gradient and sets `color: transparent`,
+   * so a bright mid-stop isn't merely low-contrast — it's invisible, with no
+   * fallback colour underneath it.
+   */
+  --c-sheen-a: #8a5b00;
+  --c-sheen-b: #b07c05;
+
+  /* Darkened so they hold up as text and as fills behind white text. */
+  --c-violet: #5b4be0;
+  --c-violet-soft: #6151e4;
+  --c-violet-deep: #4536b8;
+  --c-cyan: #22d3ee;
+  --c-cyan-ink: #0a6e85;
+  --c-gold: #f5b301;
+  --c-gold-soft: #ffd35c;
+  --c-gold-ink: #8a5b00;
+
+  --c-ink: #16162b;
+  --c-ink-dim: #3a3856;
+  --c-ink-mute: #55527a;
+  --c-ink-faint: #66637d;
+
+  /* Measured against surface-2 (#f0eef8), the worst realistic backdrop. */
+  --c-success: #0a7256;
+  --c-warn: #8a5b00;
+  --c-danger: #be153b;
+
+  /* Metallics are pale by nature; these are the ink-side equivalents. */
+  --c-tier-bronze: #8a5a32;
+  --c-tier-silver: #5f6880;
+  --c-tier-gold: #8a5b00;
+  --c-tier-mythic: #9d2482;
+
+  /* Darkened domain variants — the fills are too light to set text in. */
+  --c-health-ink: #0a7256;
+  --c-wealth-ink: #8a5b00;
+  --c-connections-ink: #b23a1d;
+  /* Kept violet rather than pushed to near-black: at #6b21a8 it stopped
+     reading as purple, and peace at #3730a3 read as navy beside it. */
+  --c-purpose-ink: #7526be;
+  --c-growth-ink: #0a5f87;
+  --c-peace-ink: #484dc0;
+  --c-fun-ink: #9d2482;
+
+  /* Light surfaces gain depth from shadow, not from a lit top edge. */
+  --c-panel-top: var(--c-surface);
+  --c-panel-inset: rgba(255, 255, 255, 0);
+  --c-panel-shadow:
+    0 1px 2px rgba(22, 22, 43, 0.05), 0 12px 28px -20px rgba(22, 22, 43, 0.28);
+  --c-orb-inset: rgba(255, 255, 255, 0.55);
+  /* Glow becomes haze on a pale background — dial it right down. */
+  --c-glow-strength: 0.35;
+  --c-star-opacity: 0;
 }
 
 @keyframes float {
@@ -87,10 +263,6 @@
   60% { opacity: 1; transform: scale(1.04); }
   100% { opacity: 1; transform: scale(1); }
 }
-@keyframes orbit {
-  from { transform: rotate(0deg) translateX(var(--orbit-r, 40px)) rotate(0deg); }
-  to { transform: rotate(360deg) translateX(var(--orbit-r, 40px)) rotate(-360deg); }
-}
 
 /* ============================================================
    Base
@@ -98,10 +270,22 @@
 
 @layer base {
   :root {
-    color-scheme: dark;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --nav-h: 4.25rem;
+  }
+
+  /*
+   * The boot script sets `color-scheme` inline and wins over this. It exists
+   * for the JavaScript-disabled case, where nothing else would tell the UA how
+   * to paint scrollbars, form controls and autofill.
+   */
+  :root,
+  [data-theme="dark"] {
+    color-scheme: dark;
+  }
+  [data-theme="light"] {
+    color-scheme: light;
   }
 
   * {
@@ -109,21 +293,40 @@
   }
 
   html {
-    /* Prevent iOS text auto-zoom in landscape */
     -webkit-text-size-adjust: 100%;
   }
 
   body {
-    background-color: var(--color-abyss);
-    color: var(--color-ink);
+    background-color: var(--c-page);
+    color: var(--c-ink);
     font-family: var(--font-sans);
     overscroll-behavior-y: none;
-    /* Deep-space vignette that sits behind the star field */
+    background-attachment: fixed;
+    /*
+     * Deliberately NOT transitioned.
+     *
+     * The theme is applied by a blocking script before first paint, so a
+     * transition here has nothing to animate on load — but Chrome still starts
+     * one from the initial value and leaves `background-color` and `color`
+     * pinned at the wrong theme indefinitely. A theme switch snapping
+     * instantly is the correct behaviour anyway.
+     */
+  }
+
+  /* Night: deep-space vignette behind the star field. */
+  [data-theme="dark"] body {
     background-image:
       radial-gradient(ellipse 80% 50% at 50% -10%, rgba(109, 94, 246, 0.22), transparent 70%),
       radial-gradient(ellipse 60% 40% at 90% 10%, rgba(34, 211, 238, 0.1), transparent 65%),
       radial-gradient(ellipse 70% 45% at 5% 25%, rgba(168, 85, 247, 0.1), transparent 65%);
-    background-attachment: fixed;
+  }
+
+  /* Day: a dawn wash — the same three light sources, far gentler. */
+  [data-theme="light"] body {
+    background-image:
+      radial-gradient(ellipse 90% 55% at 50% -15%, rgba(109, 94, 246, 0.1), transparent 72%),
+      radial-gradient(ellipse 60% 40% at 92% 6%, rgba(34, 211, 238, 0.08), transparent 68%),
+      radial-gradient(ellipse 70% 45% at 4% 22%, rgba(244, 95, 208, 0.06), transparent 68%);
   }
 
   h1, h2, h3, h4 {
@@ -131,26 +334,24 @@
     letter-spacing: -0.02em;
   }
 
-  /* Inputs never smaller than 16px on mobile — stops iOS zoom-on-focus */
   input, select, textarea {
     font-size: max(16px, 1rem);
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--color-violet) 45%, transparent);
-    color: var(--color-ink);
+    background: color-mix(in oklab, var(--c-violet) 40%, transparent);
+    color: var(--c-ink);
   }
 
-  /* Slim, unobtrusive scrollbars on desktop */
   @media (pointer: fine) {
     ::-webkit-scrollbar { width: 10px; height: 10px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb {
-      background: var(--color-surface-3);
+      background: var(--c-surface-3);
       border-radius: 999px;
-      border: 3px solid var(--color-abyss);
+      border: 3px solid var(--c-page);
     }
-    ::-webkit-scrollbar-thumb:hover { background: var(--color-hairline); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--c-hairline); }
   }
 }
 
@@ -159,46 +360,43 @@
    ============================================================ */
 
 @layer utilities {
-  /* Frosted panel — the workhorse surface of the whole app */
+  /* Frosted panel — the workhorse surface of the whole app. */
   .panel {
-    background: linear-gradient(
-      160deg,
-      color-mix(in oklab, var(--color-surface) 92%, white 8%),
-      var(--color-surface)
-    );
-    border: 1px solid color-mix(in oklab, var(--color-hairline) 70%, transparent);
-    box-shadow:
-      0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
-      0 18px 40px -24px rgba(0, 0, 0, 0.9);
+    background: linear-gradient(160deg, var(--c-panel-top), var(--c-surface));
+    border: 1px solid color-mix(in oklab, var(--c-hairline) 70%, transparent);
+    box-shadow: 0 1px 0 0 var(--c-panel-inset) inset, var(--c-panel-shadow);
     backdrop-filter: blur(12px);
   }
 
   .panel-glass {
-    background: color-mix(in oklab, var(--color-surface) 62%, transparent);
-    border: 1px solid color-mix(in oklab, var(--color-hairline) 60%, transparent);
+    background: color-mix(in oklab, var(--c-surface) 72%, transparent);
+    border: 1px solid color-mix(in oklab, var(--c-hairline) 60%, transparent);
     backdrop-filter: blur(18px) saturate(1.3);
   }
 
-  /* Domain accent — set --accent on a parent, these read from it */
+  /* Domain accent — set --accent on a parent, these read from it. */
   .accent-glow {
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent),
-                0 0 28px -6px color-mix(in oklab, var(--accent) 55%, transparent);
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent),
+      0 0 28px -6px
+        color-mix(in oklab, var(--accent) calc(55% * var(--c-glow-strength)), transparent);
   }
-  .accent-text { color: var(--accent); }
+  .accent-text { color: var(--accent-ink, var(--accent)); }
   .accent-bg-soft { background: color-mix(in oklab, var(--accent) 14%, transparent); }
   .accent-border { border-color: color-mix(in oklab, var(--accent) 45%, transparent); }
 
   .text-glow {
-    text-shadow: 0 0 22px color-mix(in oklab, currentColor 55%, transparent);
+    text-shadow: 0 0 22px
+      color-mix(in oklab, currentColor calc(55% * var(--c-glow-strength)), transparent);
   }
 
-  /* Gold "reward" treatment for XP and level-ups */
+  /* Gold "reward" treatment for XP and level-ups. */
   .gold-sheen {
     background: linear-gradient(
       100deg,
-      var(--color-gold) 0%,
-      var(--color-gold-soft) 45%,
-      var(--color-gold) 60%
+      var(--c-sheen-a) 0%,
+      var(--c-sheen-b) 45%,
+      var(--c-sheen-a) 60%
     );
     background-size: 200% 100%;
     -webkit-background-clip: text;
@@ -207,7 +405,6 @@
     animation: var(--animate-shimmer);
   }
 
-  /* Momentum scrolling row that hides its scrollbar */
   .scroll-row {
     overflow-x: auto;
     scroll-snap-type: x mandatory;
@@ -219,7 +416,6 @@
   .pad-safe-top { padding-top: var(--safe-top); }
   .pad-safe-bottom { padding-bottom: var(--safe-bottom); }
 
-  /* Press feedback — makes taps feel native rather than web-y */
   .tappable {
     transition: transform 0.12s var(--ease-out-expo), filter 0.12s ease;
     touch-action: manipulation;
@@ -228,6 +424,10 @@
     transform: scale(0.965);
     filter: brightness(1.08);
   }
+  /* Brightening a light surface washes it out; darken instead. */
+  [data-theme="light"] .tappable:active {
+    filter: brightness(0.96);
+  }
 
   .no-select {
     -webkit-user-select: none;
@@ -235,7 +435,14 @@
   }
 }
 
-/* Respect people who don't want motion. */
+/* Set for one frame while the theme swaps — see applyToDocument in theme.ts. */
+[data-theme-switching] *,
+[data-theme-switching] *::before,
+[data-theme-switching] *::after {
+  transition: none !important;
+  animation-duration: 0s !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

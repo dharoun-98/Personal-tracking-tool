@@ -206,7 +206,7 @@ export function OnboardingFlow() {
       </div>
 
       {/* Navigation */}
-      <div className="sticky bottom-0 flex items-center gap-3 bg-linear-to-t from-abyss via-abyss/95 to-transparent pt-6 pb-6 pad-safe-bottom">
+      <div className="sticky bottom-0 flex items-center gap-3 bg-linear-to-t from-page via-page/95 to-transparent pt-6 pb-6 pad-safe-bottom">
         {index > 0 && (
           <Button variant="ghost" size="lg" onClick={() => go(-1)} aria-label="Back">
             <ArrowLeft className="size-4" />
@@ -249,7 +249,7 @@ function IntroStep() {
       <div className="relative mx-auto mb-8 size-32">
         <div className="absolute inset-0 animate-pulse-glow rounded-full bg-violet/40 blur-2xl" />
         <div className="relative grid size-32 place-items-center rounded-full border border-violet/40 bg-surface">
-          <Sparkles className="size-12 text-gold" strokeWidth={1.5} />
+          <Sparkles className="size-12 text-gold-ink" strokeWidth={1.5} />
         </div>
       </div>
       <h1 className="text-4xl leading-tight font-extrabold text-balance">
@@ -279,7 +279,7 @@ function NameStep({ value, onChange }: { value: string; onChange: (v: string) =>
         onChange={(e) => onChange(e.target.value)}
         placeholder="Your name"
         maxLength={40}
-        className="w-full rounded-2xl border border-hairline bg-surface px-5 py-4 text-lg outline-none placeholder:text-ink-faint focus:border-violet focus:ring-2 focus:ring-violet/25"
+        className="w-full rounded-2xl border border-edge bg-surface px-5 py-4 text-lg outline-none placeholder:text-ink-faint focus:border-violet focus:ring-2 focus:ring-violet/25"
       />
     </div>
   );
@@ -302,7 +302,10 @@ function BaselinesStep({
         {DOMAINS.map((domain) => (
           <div
             key={domain.id}
-            style={{ ["--accent" as string]: domain.color }}
+            style={{
+              ["--accent" as string]: domain.color,
+              ["--accent-ink" as string]: domain.ink,
+            }}
             className="panel rounded-2xl p-4"
           >
             <div className="mb-3 flex items-center gap-3">
@@ -310,7 +313,7 @@ function BaselinesStep({
                 className="grid size-9 place-items-center rounded-xl"
                 style={{
                   background: `color-mix(in oklab, ${domain.color} 16%, transparent)`,
-                  color: domain.color,
+                  color: domain.ink,
                 }}
               >
                 <DomainIcon domain={domain.id} className="size-4.5" />
@@ -366,17 +369,20 @@ function PrioritiesStep({
               type="button"
               onClick={() => onToggle(domain.id)}
               disabled={disabled}
-              style={{ ["--accent" as string]: domain.color }}
+              style={{
+                ["--accent" as string]: domain.color,
+                ["--accent-ink" as string]: domain.ink,
+              }}
               className={cn(
                 "tappable relative overflow-hidden rounded-2xl border p-4 text-left transition-all",
                 active
                   ? "accent-border accent-glow bg-surface-2"
-                  : "border-hairline bg-surface hover:border-ink-faint",
+                  : "border-edge bg-surface hover:border-ink-faint",
                 disabled && "cursor-not-allowed opacity-35",
               )}
             >
               {active && (
-                <span className="absolute top-2.5 right-2.5 grid size-6 place-items-center rounded-full text-2xs font-bold text-abyss"
+                <span className="absolute top-2.5 right-2.5 grid size-6 place-items-center rounded-full text-2xs font-bold text-on-accent"
                   style={{ background: domain.color }}>
                   {rank}
                 </span>
@@ -385,7 +391,7 @@ function PrioritiesStep({
                 className="mb-2.5 grid size-10 place-items-center rounded-xl"
                 style={{
                   background: `color-mix(in oklab, ${domain.color} ${active ? 22 : 12}%, transparent)`,
-                  color: domain.color,
+                  color: domain.ink,
                 }}
               >
                 <DomainIcon domain={domain.id} className="size-5" />
@@ -432,7 +438,10 @@ function VisionsStep({
           return (
             <div
               key={id}
-              style={{ ["--accent" as string]: domain.color }}
+              style={{
+                ["--accent" as string]: domain.color,
+                ["--accent-ink" as string]: domain.ink,
+              }}
               className="panel rounded-2xl p-4"
             >
               <div className="mb-2.5 flex items-center gap-2.5">
@@ -448,7 +457,7 @@ function VisionsStep({
                 rows={3}
                 maxLength={280}
                 placeholder="In your own words…"
-                className="w-full resize-none rounded-xl border border-hairline bg-abyss/60 px-3.5 py-3 text-sm outline-none placeholder:text-ink-faint focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_oklab,var(--accent)_25%,transparent)]"
+                className="w-full resize-none rounded-xl border border-edge bg-sunken px-3.5 py-3 text-sm outline-none placeholder:text-ink-faint focus:border-[var(--accent)] focus:ring-2 focus:ring-[color-mix(in_oklab,var(--accent)_25%,transparent)]"
               />
             </div>
           );
@@ -480,7 +489,7 @@ function TimeStep({ value, onChange }: { value: number; onChange: (v: number) =>
                 "tappable flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all",
                 active
                   ? "border-violet bg-surface-2 shadow-[0_0_30px_-12px_var(--color-violet)]"
-                  : "border-hairline bg-surface hover:border-ink-faint",
+                  : "border-edge bg-surface hover:border-ink-faint",
               )}
             >
               <span
@@ -528,7 +537,7 @@ function StyleStep({
                 "tappable w-full rounded-2xl border p-4 text-left transition-all",
                 active
                   ? "border-violet bg-surface-2 shadow-[0_0_30px_-12px_var(--color-violet)]"
-                  : "border-hairline bg-surface hover:border-ink-faint",
+                  : "border-edge bg-surface hover:border-ink-faint",
               )}
             >
               <div className="flex items-center justify-between gap-3">
@@ -539,7 +548,7 @@ function StyleStep({
               <p
                 className={cn(
                   "mt-3 rounded-xl px-3 py-2 text-xs italic",
-                  active ? "bg-violet/12 text-ink-dim" : "bg-abyss/50 text-ink-mute",
+                  active ? "bg-violet/12 text-ink-dim" : "bg-sunken text-ink-mute",
                 )}
               >
                 &ldquo;{style.sample}&rdquo;
@@ -577,7 +586,7 @@ function RhythmStep({
                 "tappable rounded-2xl border p-4 text-left transition-all",
                 active
                   ? "border-violet bg-surface-2 shadow-[0_0_30px_-12px_var(--color-violet)]"
-                  : "border-hairline bg-surface hover:border-ink-faint",
+                  : "border-edge bg-surface hover:border-ink-faint",
               )}
             >
               <p className="text-sm font-semibold">{rhythm.name}</p>
@@ -622,7 +631,7 @@ function PromiseStep({
           rows={5}
           maxLength={600}
           placeholder="…stopped putting myself last. Got my sleep back. Actually finished the thing I keep talking about."
-          className="w-full resize-none rounded-xl border border-hairline bg-abyss/60 px-3.5 py-3 text-sm leading-relaxed outline-none placeholder:text-ink-faint focus:border-gold focus:ring-2 focus:ring-gold/25"
+          className="w-full resize-none rounded-xl border border-edge bg-sunken px-3.5 py-3 text-sm leading-relaxed outline-none placeholder:text-ink-faint focus:border-gold focus:ring-2 focus:ring-gold/25"
         />
         <div className="mt-4">
           <p className="mb-2 text-2xs tracking-wide text-ink-faint uppercase">Look back in</p>
@@ -635,8 +644,8 @@ function PromiseStep({
                 className={cn(
                   "tappable flex-1 rounded-xl border py-2.5 text-xs font-semibold transition-all",
                   horizon === months
-                    ? "border-gold bg-gold/12 text-gold"
-                    : "border-hairline bg-surface text-ink-mute",
+                    ? "border-gold bg-gold/12 text-gold-ink"
+                    : "border-edge bg-surface text-ink-mute",
                 )}
               >
                 {months}m
@@ -677,7 +686,10 @@ function QuestsStep({
               key={idea.id}
               type="button"
               onClick={() => onToggle(idea.id)}
-              style={{ ["--accent" as string]: domain.color }}
+              style={{
+                ["--accent" as string]: domain.color,
+                ["--accent-ink" as string]: domain.ink,
+              }}
               className={cn(
                 "tappable flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left transition-all",
                 off
@@ -689,7 +701,7 @@ function QuestsStep({
                 className="grid size-9 shrink-0 place-items-center rounded-xl"
                 style={{
                   background: `color-mix(in oklab, ${domain.color} 15%, transparent)`,
-                  color: domain.color,
+                  color: domain.ink,
                 }}
               >
                 <DomainIcon domain={idea.domain} className="size-4.5" />
@@ -704,7 +716,7 @@ function QuestsStep({
               <span
                 className={cn(
                   "grid size-7 shrink-0 place-items-center rounded-full border-2 transition-colors",
-                  off ? "border-hairline text-transparent" : "border-transparent text-abyss",
+                  off ? "border-edge text-transparent" : "border-transparent text-on-accent",
                 )}
                 style={off ? undefined : { background: domain.color }}
               >
@@ -743,7 +755,7 @@ function FinaleStep({ draft, questCount }: { draft: OnboardingDraft; questCount:
                 background: `radial-gradient(circle at 35% 30%, color-mix(in oklab, ${domain.color} 40%, var(--color-surface)), var(--color-surface))`,
                 border: `1px solid color-mix(in oklab, ${domain.color} 50%, transparent)`,
                 boxShadow: `0 0 34px -8px ${domain.color}`,
-                color: domain.color,
+                color: domain.ink,
               }}
             >
               <DomainIcon domain={id} className="size-7" />

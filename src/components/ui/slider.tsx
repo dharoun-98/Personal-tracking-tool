@@ -44,12 +44,14 @@ export function Slider({
         "h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-3 outline-none",
         "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:size-6",
         "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2",
-        "[&::-webkit-slider-thumb]:border-white/70 [&::-webkit-slider-thumb]:transition-transform",
-        "[&::-webkit-slider-thumb]:bg-[var(--thumb)] [&::-webkit-slider-thumb]:shadow-[0_0_16px_-2px_var(--thumb)]",
+        // The thumb ring is the page colour, so it reads as a cut-out in both
+        // themes rather than a white dot floating on a pale background.
+        "[&::-webkit-slider-thumb]:border-page [&::-webkit-slider-thumb]:transition-transform",
+        "[&::-webkit-slider-thumb]:bg-[var(--thumb)] [&::-webkit-slider-thumb]:shadow-[0_1px_6px_rgba(0,0,0,0.25)]",
         "[&::-webkit-slider-thumb]:active:scale-115",
         "[&::-moz-range-thumb]:size-6 [&::-moz-range-thumb]:rounded-full",
-        "[&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white/70",
-        "[&::-moz-range-thumb]:bg-[var(--thumb)] [&::-moz-range-thumb]:border-none",
+        "[&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-page",
+        "[&::-moz-range-thumb]:bg-[var(--thumb)]",
         "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-violet-soft",
         className,
       )}

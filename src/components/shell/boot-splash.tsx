@@ -14,7 +14,7 @@ export function BootSplash({ label = "Loading your world…" }: { label?: string
         <div className="relative size-16">
           <div className="absolute inset-0 animate-pulse-glow rounded-full bg-violet/50 blur-xl" />
           <div className="relative grid size-16 place-items-center rounded-full border border-violet/40 bg-surface">
-            <Sparkles className="size-7 animate-float text-gold" strokeWidth={1.5} />
+            <Sparkles className="size-7 animate-float text-gold-ink" strokeWidth={1.5} />
           </div>
         </div>
         <p className="text-xs tracking-[0.14em] text-ink-faint uppercase">{label}</p>

@@ -48,7 +48,7 @@ export function Chip({
   const tones = {
     neutral: "bg-surface-2 text-ink-dim border-hairline",
     accent: "accent-bg-soft accent-text accent-border",
-    gold: "bg-gold/12 text-gold border-gold/35",
+    gold: "bg-gold/12 text-gold-ink border-gold/35",
     success: "bg-success/12 text-success border-success/35",
     danger: "bg-danger/12 text-danger border-danger/35",
   } as const;

@@ -43,7 +43,7 @@ export function XpBar({
           style={{
             width: `${pct}%`,
             background:
-              "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 50%, transparent 100%)",
+              "linear-gradient(90deg, transparent 0%, color-mix(in srgb, white 35%, transparent) 50%, transparent 100%)",
             backgroundSize: "200% 100%",
           }}
         />

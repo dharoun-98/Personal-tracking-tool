@@ -93,7 +93,13 @@ export default function NewQuestPage() {
   };
 
   return (
-    <main className="space-y-6 pt-6" style={{ ["--accent" as string]: meta.color }}>
+    <main
+      className="space-y-6 pt-6"
+      style={{
+        ["--accent" as string]: meta.color,
+        ["--accent-ink" as string]: meta.ink,
+      }}
+    >
       <Link
         href="/dashboard"
         className="tappable inline-flex items-center gap-1.5 text-xs text-ink-mute transition-colors hover:text-ink"
@@ -122,14 +128,14 @@ export default function NewQuestPage() {
                 onClick={() => setDomain(d.id)}
                 className={cn(
                   "tappable flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs font-medium transition-all",
-                  active ? "bg-surface-2" : "border-hairline bg-surface text-ink-mute",
+                  active ? "bg-surface-2" : "border-edge bg-surface text-ink-mute",
                 )}
                 style={
                   active
                     ? {
                         borderColor: `color-mix(in oklab, ${d.color} 55%, transparent)`,
-                        color: d.color,
-                        boxShadow: `0 0 22px -10px ${d.color}`,
+                        color: d.ink,
+                        boxShadow: `0 0 22px -10px color-mix(in oklab, ${d.color} calc(100% * var(--c-glow-strength)), transparent)`,
                       }
                     : undefined
                 }
@@ -194,7 +200,7 @@ export default function NewQuestPage() {
                   className="grid size-9 shrink-0 place-items-center rounded-xl"
                   style={{
                     background: `color-mix(in oklab, ${meta.color} 15%, transparent)`,
-                    color: meta.color,
+                    color: meta.ink,
                   }}
                 >
                   <DomainIcon domain={idea.domain} className="size-4.5" />
@@ -225,7 +231,7 @@ export default function NewQuestPage() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Walk after lunch"
               maxLength={80}
-              className="w-full rounded-2xl border border-hairline bg-surface px-4 py-3.5 text-sm outline-none placeholder:text-ink-faint focus:border-[var(--accent)]"
+              className="w-full rounded-2xl border border-edge bg-surface px-4 py-3.5 text-sm outline-none placeholder:text-ink-faint focus:border-[var(--accent)]"
             />
           </div>
 
@@ -238,7 +244,7 @@ export default function NewQuestPage() {
               onChange={(e) => setDetail(e.target.value)}
               placeholder="Clears my head before the afternoon"
               maxLength={140}
-              className="w-full rounded-2xl border border-hairline bg-surface px-4 py-3.5 text-sm outline-none placeholder:text-ink-faint focus:border-[var(--accent)]"
+              className="w-full rounded-2xl border border-edge bg-surface px-4 py-3.5 text-sm outline-none placeholder:text-ink-faint focus:border-[var(--accent)]"
             />
           </div>
 
@@ -290,7 +296,7 @@ export default function NewQuestPage() {
                   inputMode="numeric"
                   value={target}
                   onChange={(e) => setTarget(Math.max(1, Number(e.target.value) || 1))}
-                  className="w-full rounded-2xl border border-hairline bg-surface px-4 py-3.5 text-sm tabular-nums outline-none focus:border-[var(--accent)]"
+                  className="w-full rounded-2xl border border-edge bg-surface px-4 py-3.5 text-sm tabular-nums outline-none focus:border-[var(--accent)]"
                 />
               </div>
               <div className="flex-1">
@@ -302,7 +308,7 @@ export default function NewQuestPage() {
                   onChange={(e) => setUnit(e.target.value)}
                   placeholder="min"
                   maxLength={12}
-                  className="w-full rounded-2xl border border-hairline bg-surface px-4 py-3.5 text-sm outline-none placeholder:text-ink-faint focus:border-[var(--accent)]"
+                  className="w-full rounded-2xl border border-edge bg-surface px-4 py-3.5 text-sm outline-none placeholder:text-ink-faint focus:border-[var(--accent)]"
                 />
               </div>
             </div>
@@ -380,7 +386,7 @@ function OptionChip({
       onClick={onClick}
       className={cn(
         "tappable rounded-xl border px-2 py-2.5 text-center text-xs font-medium transition-all",
-        active ? "bg-surface-2" : "border-hairline bg-surface text-ink-mute",
+        active ? "bg-surface-2" : "border-edge bg-surface text-ink-mute",
       )}
       style={
         active

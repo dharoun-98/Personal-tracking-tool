@@ -8,6 +8,62 @@ Versions follow `MAJOR.MINOR.PATCH`. Until 1.0 the minor number tracks stages.
 
 ---
 
+## [0.2.0] — 2026-08-10 · Stage 2: Day, documents and delivery
+
+Light mode, the two keepsake PDFs, email delivery, and editable settings.
+
+### Added
+
+- **Day theme** — a full light mode beside the original Night, plus a
+  Day / Night / Auto control in your profile. The theme is applied by a
+  blocking script before first paint, so there is no flash of the wrong one.
+  Two token families make it work: `--color-{domain}-ink` (a darkened variant
+  for anything that sets *text* in a domain's colour) and `--color-on-accent`
+  (near-black in both themes, for text sitting on a saturated fill).
+- **Your Starting Report** — a four-page PDF of where you stood on day one:
+  all seven baselines with your own vision statements, your starting board,
+  and a plain-English explanation of what level, vitality, streak and dormant
+  actually mean.
+- **A Promise to Your Future Self** — a one-page letter in your own words,
+  dated, with an "open on" date N months out. Prints with space to write by
+  hand if you skipped the promise during setup.
+- **Email delivery** — both PDFs attached, from your profile. Generated on the
+  device and uploaded, because the server has no copy of your history to build
+  them from. Rate-limited and size-capped; hides itself entirely when no mail
+  provider is configured.
+- **Editable settings** at `/settings` — name, companion, rhythm, daily time,
+  focus domains, visions, promise and horizon.
+
+### Changed
+
+- **Accessibility.** Every route was measured in both themes with a real
+  contrast checker (canvas-resolved colours, full alpha compositing over the
+  ancestor stack). Twenty route/theme combinations now have **zero** WCAG AA
+  failures. That work fixed pre-existing Stage 1 problems: `--c-ink-mute` and
+  `--c-ink-faint` measured 2.3–2.7:1 in the dark theme against surfaces they
+  were routinely used on.
+- New `--color-edge` token for borders that *are* the control boundary
+  (inputs, option chips), which WCAG 1.4.11 requires to clear 3:1.
+  `--color-hairline` stays decorative.
+- The activity heatmap no longer prints a day number inside each cell. The
+  fill runs from near-surface to full accent, so no single text colour is
+  legible across that range; the date lives in the tooltip and `aria-label`.
+- Baselines are deliberately **not** editable. They are the substance of the
+  starting report, and a report you can retroactively edit is worth nothing.
+
+### Fixed
+
+- **Theme changes could leave the page half light and half dark.** Elements
+  carrying a colour transition would animate toward the new theme and get
+  pinned at the old value indefinitely. Transitions are now frozen for one
+  frame while the theme swaps.
+- **`.gold-sheen` was invisible in Day.** It paints text with a gradient and
+  sets `color: transparent`; the bright middle stop measured 1.85:1 on white
+  with no fallback underneath. The shimmer now runs between two dark golds in
+  Day.
+
+---
+
 ## [0.1.0] — 2026-08-09 · Stage 1: The playable core
 
 The game exists and you can play it. Local-first: everything lives on the
@@ -60,4 +116,5 @@ Accounts and cloud sync, the two PDF documents, email delivery, the admin
 panel, Stripe billing and trial enforcement, and live push notifications.
 Those are Stages 2–4.
 
+[0.2.0]: https://github.com/dharoun-98/Personal-tracking-tool/releases/tag/v0.2.0
 [0.1.0]: https://github.com/dharoun-98/Personal-tracking-tool/releases/tag/v0.1.0

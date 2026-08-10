@@ -41,7 +41,10 @@ export function StarField() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      // Stars are a night-time device: --c-star-opacity is 0 in Day, which
+      // takes the whole layer out without needing a second component.
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden transition-opacity duration-500"
+      style={{ opacity: "var(--c-star-opacity)" }}
     >
       {/* Nebulae — big, cheap, blurred gradients that give the void depth. */}
       <div className="absolute -top-32 left-1/2 h-[38rem] w-[38rem] -translate-x-1/2 rounded-full bg-violet/12 blur-[120px]" />

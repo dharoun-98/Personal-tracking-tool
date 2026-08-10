@@ -94,7 +94,7 @@ export default function Home() {
                   style={{
                     background: `radial-gradient(circle at 35% 30%, color-mix(in oklab, ${domain.color} 32%, var(--color-surface)), var(--color-surface))`,
                     border: `1px solid color-mix(in oklab, ${domain.color} 45%, transparent)`,
-                    color: domain.color,
+                    color: domain.ink,
                   }}
                 >
                   <DomainIcon domain={domain.id} className="size-6 sm:size-8" />
@@ -118,7 +118,7 @@ export default function Home() {
         <div className="grid gap-4 sm:grid-cols-3">
           {STEPS.map((step) => (
             <Panel key={step.n} className="p-5">
-              <p className="font-display text-3xl font-bold text-violet/45">{step.n}</p>
+              <p className="font-display text-3xl font-bold text-violet-soft/75">{step.n}</p>
               <h3 className="mt-3 text-base font-semibold">{step.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-ink-mute">{step.body}</p>
             </Panel>

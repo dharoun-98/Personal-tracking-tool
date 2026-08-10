@@ -1,6 +1,6 @@
 {
   "name": "personal-tracking-tool",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Play your own game of life — track health, wealth, connections, purpose, growth, inner peace and fun.",
   "scripts": {
@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.6.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.95.0",
     "clsx": "^2.1.1",

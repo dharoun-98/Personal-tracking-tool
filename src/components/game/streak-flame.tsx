@@ -26,7 +26,7 @@ export function StreakFlame({
       className={cn(
         "inline-flex items-center gap-1 font-semibold tabular-nums",
         size === "sm" ? "text-2xs" : "text-xs",
-        lit ? (blazing ? "text-gold" : hot ? "text-warn" : "text-ink-dim") : "text-ink-faint",
+        lit ? (blazing ? "text-gold-ink" : hot ? "text-warn" : "text-ink-dim") : "text-ink-faint",
         className,
       )}
       title={lit ? `${days} day streak` : "No streak yet — today can start one"}

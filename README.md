@@ -7,9 +7,12 @@ Seven domains, seven orbs to keep lit. Answer a few honest questions, get a
 board sized to the time you actually have, and log a day at a time. Your
 companion celebrates what you finished and asks gently about what you didn't.
 
-> **Status:** v0.1.0 — Stage 1 (the playable core). Local-first, no account
-> required. See [`CHANGELOG.md`](CHANGELOG.md) for what's in it and
-> [`docs/versions/`](docs/versions/) for the full story behind each release.
+> **Status:** v0.2.0 — Stage 2 (Day theme, documents, email, settings).
+> Local-first, no account required. See [`CHANGELOG.md`](CHANGELOG.md) for
+> what's in it and [`docs/versions/`](docs/versions/) for the full story behind
+> each release.
+
+**Live:** <https://personal-tracking-tool.vercel.app>
 
 ---
 
@@ -53,6 +56,14 @@ npm run lint
 | **Streak** | Consecutive days you showed up. An unfinished *today* never breaks one. |
 | **Lumen** | Your companion. Rule-based, four personalities, no AI, deliberately quiet. |
 
+### Theming
+
+Two themes — **Night** (the original deep-space canvas) and **Day** — switched
+from your profile, or set to follow your device. Every domain carries two
+colour values: `color` for fills, identical in both themes, and `ink` for text,
+which flips. `--color-on-accent` is near-black in both, for text on a saturated
+fill. There is not a single `dark:` utility in the codebase.
+
 ---
 
 ## Project layout
@@ -89,7 +100,7 @@ docs/
 | Stage | Contents |
 | --- | --- |
 | 1 ✅ | Playable core: onboarding, dashboard, check-ins, companion, PWA |
-| 2 | Starting-report and promise-letter PDFs, email delivery, editable settings |
+| 2 ✅ | Light + dark themes, the two PDFs, email delivery, editable settings |
 | 3 | Supabase accounts and cloud sync, admin panel, Stripe billing, trial enforcement |
 | 4 | Live push notifications and reminders, deeper analytics |
 

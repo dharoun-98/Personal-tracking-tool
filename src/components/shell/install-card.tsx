@@ -44,13 +44,13 @@ export function InstallCard() {
         </p>
         <ol className="mt-3 space-y-2.5 text-xs text-ink-dim">
           <li className="flex items-center gap-2.5">
-            <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-surface-2 text-cyan">
+            <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-surface-2 text-cyan-ink">
               <Share className="size-3.5" />
             </span>
             Tap the Share button in the toolbar
           </li>
           <li className="flex items-center gap-2.5">
-            <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-surface-2 text-cyan">
+            <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-surface-2 text-cyan-ink">
               <SquarePlus className="size-3.5" />
             </span>
             Choose &ldquo;Add to Home Screen&rdquo;

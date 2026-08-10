@@ -21,13 +21,13 @@ export const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary:
     "bg-violet text-white shadow-[0_8px_30px_-10px_var(--color-violet)] hover:bg-violet-soft border border-violet-soft/40",
   secondary:
-    "bg-surface-2 text-ink border border-hairline hover:bg-surface-3 hover:border-violet/40",
+    "bg-surface-2 text-ink border border-edge hover:bg-surface-3 hover:border-violet/40",
   ghost: "bg-transparent text-ink-dim hover:text-ink hover:bg-surface-2/70",
-  gold: "bg-gold text-abyss font-semibold shadow-[0_8px_30px_-10px_var(--color-gold)] hover:bg-gold-soft border border-gold-soft/50",
+  gold: "bg-gold text-on-accent font-semibold shadow-[0_6px_22px_-12px_var(--color-gold)] hover:bg-gold-soft border border-gold-soft/50",
   danger: "bg-danger/15 text-danger border border-danger/40 hover:bg-danger/25",
   // Reads --accent from an ancestor, so one button works for all seven domains.
   accent:
-    "text-abyss font-semibold border border-white/20 bg-[var(--accent)] hover:brightness-110 shadow-[0_8px_30px_-12px_var(--accent)]",
+    "text-on-accent font-semibold border border-black/10 bg-[var(--accent)] hover:brightness-110 shadow-[0_6px_22px_-14px_var(--accent)]",
 };
 
 export const BUTTON_SIZES: Record<ButtonSize, string> = {

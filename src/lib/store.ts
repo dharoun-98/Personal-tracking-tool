@@ -69,6 +69,7 @@ export interface GameState {
     quests: Quest[];
     goals: Goal[];
   }) => void;
+  updateProfile: (patch: Partial<PlayerProfile>) => void;
   logQuest: (questId: string, status: LogStatus, value?: number, day?: DayKey) => LogEntry;
   clearLog: (questId: string, day?: DayKey) => void;
   addQuest: (quest: Omit<Quest, "id" | "createdAt">) => Quest;
@@ -125,6 +126,9 @@ export const useGame = create<GameState>()(
             status: s.account.status === "trialing" ? "trialing" : s.account.status,
           },
         })),
+
+      updateProfile: (patch) =>
+        set((s) => (s.profile ? { profile: { ...s.profile, ...patch } } : {})),
 
       logQuest: (questId, status, value, day) => {
         const date = day ?? todayKey();

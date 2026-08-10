@@ -4,6 +4,8 @@ import "./globals.css";
 import { StarField } from "@/components/shell/star-field";
 import { ServiceWorkerBridge } from "@/components/shell/service-worker-bridge";
 import { StoreHydrator } from "@/components/shell/store-hydrator";
+import { ThemeScript } from "@/components/shell/theme-script";
+import { ThemeProvider } from "@/components/shell/theme-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -55,8 +57,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0B0B1F",
-  colorScheme: "dark",
+  // Two entries so the browser chrome matches before our script runs; the
+  // script then keeps it in step with an explicit Day/Night choice.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F6F5FA" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B0B1F" },
+  ],
+  colorScheme: "light dark",
   width: "device-width",
   initialScale: 1,
   // Locks the layout to app-like behaviour: no pinch zoom, no rubber-band
@@ -69,11 +76,20 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // `suppressHydrationWarning`: the boot script stamps data-theme and
+  // color-scheme onto <html> before React hydrates, so the server markup and
+  // the live DOM differ there by design.
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable}`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${outfit.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-dvh antialiased">
+        <ThemeScript />
         <StarField />
         <StoreHydrator />
+        <ThemeProvider />
         <ServiceWorkerBridge />
         <div className="relative z-10">{children}</div>
       </body>

@@ -59,7 +59,10 @@ export default function DomainPage() {
   return (
     <main
       className="space-y-7 pt-6"
-      style={{ ["--accent" as string]: meta.color }}
+      style={{
+        ["--accent" as string]: meta.color,
+        ["--accent-ink" as string]: meta.ink,
+      }}
     >
       <Link
         href="/map"

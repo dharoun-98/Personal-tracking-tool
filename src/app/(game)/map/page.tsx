@@ -133,7 +133,7 @@ export default function MapPage() {
                           intensity * 45,
                         )}%, var(--color-surface)), var(--color-surface))`,
                         border: `1px solid color-mix(in oklab, ${meta.color} ${dormant ? 20 : 50}%, transparent)`,
-                        color: meta.color,
+                        color: meta.ink,
                       }}
                     >
                       <DomainIcon
@@ -164,14 +164,17 @@ export default function MapPage() {
               <Link
                 key={id}
                 href={`/domains/${id}`}
-                style={{ ["--accent" as string]: meta.color }}
+                style={{
+                  ["--accent" as string]: meta.color,
+                  ["--accent-ink" as string]: meta.ink,
+                }}
                 className="panel tappable flex items-center gap-3.5 rounded-2xl p-3.5"
               >
                 <span
                   className="grid size-11 shrink-0 place-items-center rounded-xl"
                   style={{
                     background: `color-mix(in oklab, ${meta.color} 15%, transparent)`,
-                    color: meta.color,
+                    color: meta.ink,
                   }}
                 >
                   <DomainIcon domain={id} className="size-5" />

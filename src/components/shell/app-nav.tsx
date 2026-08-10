@@ -94,7 +94,7 @@ export function SideRail() {
     >
       <Link href="/dashboard" className="mb-9 flex items-center gap-2.5 px-2">
         <span className="grid size-9 place-items-center rounded-xl border border-violet/40 bg-violet/15">
-          <Sparkles className="size-4.5 text-gold" strokeWidth={1.75} />
+          <Sparkles className="size-4.5 text-gold-ink" strokeWidth={1.75} />
         </span>
         <span className="font-display text-base font-bold">Lifequest</span>
       </Link>

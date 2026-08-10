@@ -50,7 +50,10 @@ export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardPr
   return (
     <motion.div
       layout
-      style={{ ["--accent" as string]: meta.color }}
+      style={{
+        ["--accent" as string]: meta.color,
+        ["--accent-ink" as string]: meta.ink,
+      }}
       className={cn(
         "panel relative overflow-hidden rounded-2xl transition-colors",
         done && "border-[color-mix(in_oklab,var(--accent)_38%,transparent)]",
@@ -90,7 +93,7 @@ export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardPr
             className="grid size-9 shrink-0 place-items-center rounded-xl"
             style={{
               background: `color-mix(in oklab, ${meta.color} 14%, transparent)`,
-              color: meta.color,
+              color: meta.ink,
             }}
           >
             <DomainIcon domain={quest.domain} className="size-4.5" />
@@ -135,7 +138,7 @@ export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardPr
           className={cn(
             "tappable grid size-11 shrink-0 place-items-center rounded-full border-2 transition-all",
             done
-              ? "border-transparent text-abyss"
+              ? "border-transparent text-on-accent"
               : "border-hairline text-ink-faint hover:border-[var(--accent)] hover:text-[var(--accent)]",
           )}
           style={done ? { background: meta.color, boxShadow: `0 0 20px -4px ${meta.color}` } : undefined}
@@ -220,7 +223,7 @@ export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardPr
                       onLog(hitTarget ? "done" : "partial", value);
                       setExpanded(false);
                     }}
-                    className="tappable rounded-xl px-3 py-2 text-xs font-semibold text-abyss"
+                    className="tappable rounded-xl px-3 py-2 text-xs font-semibold text-on-accent"
                     style={{ background: meta.color }}
                   >
                     Log {value} {quest.unit}

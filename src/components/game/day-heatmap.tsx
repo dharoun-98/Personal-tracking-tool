@@ -1,6 +1,6 @@
 "use client";
 
-import { dayRange, fromDayKey, prettyDay } from "@/lib/date";
+import { dayRange, prettyDay } from "@/lib/date";
 import { cn } from "@/lib/cn";
 import type { DayKey } from "@/lib/types";
 
@@ -30,25 +30,36 @@ export function DayHeatmap({
       {cells.map((cell) => {
         const empty = cell.value === null;
         const value = cell.value ?? 0;
-        const day = fromDayKey(cell.date).getDate();
+        const label = `${prettyDay(cell.date)}${
+          empty ? " — nothing due" : ` — ${Math.round(value * 100)}%`
+        }`;
         return (
           <span
             key={cell.date}
-            title={`${prettyDay(cell.date)}${empty ? " — nothing due" : ` — ${Math.round(value * 100)}%`}`}
-            className="grid size-7 place-items-center rounded-lg text-[0.5625rem] font-semibold tabular-nums transition-colors"
+            title={label}
+            aria-label={label}
+            role="img"
+            /*
+             * No day number inside the cell. The fill runs from near-surface to
+             * full accent, so any single text colour is illegible at one end of
+             * that range in one theme or the other — and a 9px numeral was
+             * noise on top of the signal anyway. The date lives in the tooltip
+             * and the aria-label.
+             */
+            className="size-7 rounded-lg transition-colors"
             style={{
               background: empty
                 ? "transparent"
                 : `color-mix(in oklab, ${color} ${Math.round(12 + value * 78)}%, var(--color-surface-2))`,
               border: empty
-                ? "1px dashed var(--color-hairline)"
+                ? "1px dashed var(--color-edge)"
                 : `1px solid color-mix(in oklab, ${color} ${Math.round(20 + value * 45)}%, transparent)`,
-              color: value > 0.55 ? "var(--color-abyss)" : "var(--color-ink-faint)",
-              boxShadow: value >= 1 ? `0 0 12px -3px ${color}` : undefined,
+              boxShadow:
+                value >= 1
+                  ? `0 0 12px -3px color-mix(in oklab, ${color} calc(100% * var(--c-glow-strength)), transparent)`
+                  : undefined,
             }}
-          >
-            {day}
-          </span>
+          />
         );
       })}
     </div>

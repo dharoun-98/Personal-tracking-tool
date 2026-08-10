@@ -53,7 +53,10 @@ export function DomainOrb({
         (href || onClick) && "tappable cursor-pointer",
         className,
       )}
-      style={{ ["--accent" as string]: meta.color }}
+      style={{
+        ["--accent" as string]: meta.color,
+        ["--accent-ink" as string]: meta.ink,
+      }}
     >
       <span className="relative grid place-items-center" style={{ width: dims.box, height: dims.box }}>
         {/* Outer bloom */}
@@ -87,9 +90,10 @@ export function DomainOrb({
               intensity * 42,
             )}%, var(--color-surface)), var(--color-surface))`,
             boxShadow: dormant
-              ? "inset 0 1px 0 rgba(255,255,255,0.05)"
-              : `inset 0 1px 0 rgba(255,255,255,0.12), 0 0 20px -8px ${meta.color}`,
-            border: `1px solid color-mix(in oklab, ${meta.color} ${dormant ? 18 : 40}%, transparent)`,
+              ? "inset 0 1px 0 var(--c-orb-inset)"
+              : `inset 0 1px 0 var(--c-orb-inset), 0 0 20px -8px color-mix(in oklab, ${meta.color} calc(100% * var(--c-glow-strength)), transparent)`,
+            border: `1px solid color-mix(in oklab, ${meta.color} ${dormant ? 30 : 55}%, transparent)`,
+            color: meta.ink,
           }}
         >
           <DomainIcon
@@ -105,11 +109,10 @@ export function DomainOrb({
         {/* Level pip */}
         {!dormant && (
           <span
-            className="absolute -right-0.5 -bottom-0.5 grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-2xs font-bold tabular-nums"
+            className="absolute -right-0.5 -bottom-0.5 grid h-6 min-w-6 place-items-center rounded-full px-1.5 text-2xs font-bold tabular-nums text-on-accent"
             style={{
               background: meta.color,
-              color: "var(--color-abyss)",
-              boxShadow: `0 0 14px -3px ${meta.color}`,
+              boxShadow: `0 0 14px -3px color-mix(in oklab, ${meta.color} calc(100% * var(--c-glow-strength)), transparent)`,
             }}
           >
             {state.level.level}
