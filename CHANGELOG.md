@@ -33,6 +33,13 @@ publishable key — the same key any visitor can read out of the client bundle.
 - **`middleware.ts` → `proxy.ts`.** Next 16 deprecated the middleware file
   convention. Same behaviour, no more build warning.
 
+- **The version badge said 0.1.0 on a 0.3.1 build.** It read an environment
+  variable nobody had set and fell back to a hardcoded string. Now injected
+  from `package.json` in `next.config.ts`, so it cannot drift.
+
+- **Credential scratch files are untracked and gitignored.** `git add -A` had
+  been sweeping up loose `.txt` files holding provider keys.
+
 ### Verified against the live project
 
 - Anonymous reads with the publishable key return `[]` on all seven tables.

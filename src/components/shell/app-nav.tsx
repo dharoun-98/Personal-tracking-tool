@@ -105,8 +105,9 @@ export function SideRail() {
         ))}
       </ul>
 
+      {/* Injected from package.json in next.config.ts — see the note there. */}
       <p className="px-2 text-2xs text-ink-faint">
-        v{process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0"}
+        v{process.env.NEXT_PUBLIC_APP_VERSION}
       </p>
     </nav>
   );
