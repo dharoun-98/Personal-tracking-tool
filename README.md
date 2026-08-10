@@ -7,10 +7,10 @@ Seven domains, seven orbs to keep lit. Answer a few honest questions, get a
 board sized to the time you actually have, and log a day at a time. Your
 companion celebrates what you finished and asks gently about what you didn't.
 
-> **Status:** v0.2.0 — Stage 2 (Day theme, documents, email, settings).
-> Local-first, no account required. See [`CHANGELOG.md`](CHANGELOG.md) for
-> what's in it and [`docs/versions/`](docs/versions/) for the full story behind
-> each release.
+> **Status:** v0.3.0 — Stage 3 (accounts, backup, billing, admin panel).
+> Still local-first: the whole game runs with no backend and no account. See
+> [`CHANGELOG.md`](CHANGELOG.md) for what's in it and
+> [`docs/versions/`](docs/versions/) for the full story behind each release.
 
 **Live:** <https://personal-tracking-tool.vercel.app>
 
@@ -101,8 +101,28 @@ docs/
 | --- | --- |
 | 1 ✅ | Playable core: onboarding, dashboard, check-ins, companion, PWA |
 | 2 ✅ | Light + dark themes, the two PDFs, email delivery, editable settings |
-| 3 | Supabase accounts and cloud sync, admin panel, Stripe billing, trial enforcement |
+| 3 ✅ | Supabase accounts, cloud backup, admin panel, Stripe billing, trial enforcement |
 | 4 | Live push notifications and reminders, deeper analytics |
+
+---
+
+## Switching on the cloud
+
+Everything below is optional — skip it entirely and the game still works.
+
+1. **Run the migration.** Paste
+   [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql)
+   into the Supabase SQL Editor and run it once. It's idempotent.
+2. **Set the environment variables** from [`.env.example`](.env.example), in
+   `.env.local` for development and in your Vercel project for production.
+3. **Point Supabase auth back at your site.** Authentication → URL
+   Configuration → set the Site URL, and add `<your-domain>/auth/callback` to
+   Redirect URLs.
+
+The admin panel lives at `/command-deck` and needs `ADMIN_PASSWORD` plus an
+`ADMIN_SESSION_SECRET` of at least 24 characters. Stripe needs
+`STRIPE_SECRET_KEY`, a price id, and a webhook pointed at
+`/api/billing/webhook`.
 
 ---
 

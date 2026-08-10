@@ -43,6 +43,13 @@ export interface AccountState {
   email?: string;
 }
 
+export interface SyncState {
+  lastPushedAt?: string;
+  lastPulledAt?: string;
+  /** Message from the most recent failure, cleared on success. */
+  error?: string | null;
+}
+
 export interface GameState {
   /* --- persisted ------------------------------------------------- */
   profile: PlayerProfile | null;
@@ -53,6 +60,7 @@ export interface GameState {
   unlocked: UnlockedAchievement[];
   coachCooldowns: Record<string, string>;
   account: AccountState;
+  sync: SyncState;
   onboardingComplete: boolean;
   lastSeenAt?: string;
   /** Set once the two documents have been generated at least once. */
@@ -84,6 +92,23 @@ export interface GameState {
   touchSession: () => void;
   setHydrated: () => void;
   setAccount: (patch: Partial<AccountState>) => void;
+  setSync: (patch: Partial<SyncState>) => void;
+  /**
+   * Wholesale replacement, used only by a cloud restore.
+   *
+   * Separate from the granular actions on purpose: it is the one operation
+   * that can destroy local history, so it should be obvious at every call
+   * site that that is what's happening.
+   */
+  replaceAll: (input: {
+    profile: PlayerProfile | null;
+    onboardingComplete: boolean;
+    quests: Quest[];
+    logs: LogEntry[];
+    goals: Goal[];
+    reflections: DayReflection[];
+    unlocked: UnlockedAchievement[];
+  }) => void;
   markReportsGenerated: () => void;
   resetEverything: () => void;
 }
@@ -102,6 +127,7 @@ const empty = {
   unlocked: [] as UnlockedAchievement[],
   coachCooldowns: {} as Record<string, string>,
   account: initialAccount,
+  sync: {} as SyncState,
   onboardingComplete: false,
   lastSeenAt: undefined as string | undefined,
   reportsGeneratedAt: undefined as string | undefined,
@@ -231,6 +257,22 @@ export const useGame = create<GameState>()(
 
       setAccount: (patch) => set((s) => ({ account: { ...s.account, ...patch } })),
 
+      setSync: (patch) => set((s) => ({ sync: { ...s.sync, ...patch } })),
+
+      replaceAll: ({ profile, onboardingComplete, quests, logs, goals, reflections, unlocked }) =>
+        set({
+          profile,
+          onboardingComplete,
+          quests,
+          logs,
+          goals,
+          reflections,
+          unlocked,
+          // The companion should react to the restored world, not carry over
+          // cooldowns earned against the world it replaced.
+          coachCooldowns: {},
+        }),
+
       markReportsGenerated: () =>
         set({ reportsGeneratedAt: new Date().toISOString() }),
 
@@ -254,6 +296,7 @@ export const useGame = create<GameState>()(
         unlocked: state.unlocked,
         coachCooldowns: state.coachCooldowns,
         account: state.account,
+        sync: state.sync,
         onboardingComplete: state.onboardingComplete,
         lastSeenAt: state.lastSeenAt,
         reportsGeneratedAt: state.reportsGeneratedAt,

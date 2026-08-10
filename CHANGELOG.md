@@ -8,6 +8,52 @@ Versions follow `MAJOR.MINOR.PATCH`. Until 1.0 the minor number tracks stages.
 
 ---
 
+## [0.3.0] — 2026-08-10 · Stage 3: Accounts, billing and the command deck
+
+Supabase accounts, cloud backup, trial enforcement, an admin panel, and
+Stripe wired up behind env vars.
+
+**The game still runs with none of this configured.** Every capability here
+degrades to a readable "not switched on" state rather than an error, and the
+local-first experience is unchanged.
+
+### Added
+
+- **Accounts** — email/password or magic link, via Supabase. Session refresh
+  in middleware so a server-rendered page never sees a stale token.
+- **Database schema** at `supabase/migrations/0001_init.sql`. Row-level
+  security on every table, scoped to `auth.uid()`, with a signup trigger that
+  provisions the profile and account rows.
+- **Cloud backup and restore.** Explicitly a backup, not live multi-device
+  sync — and when both the device and the cloud hold a game, it shows you
+  what's in each and asks. It never picks a side for you.
+- **Trial enforcement.** Sixteen days, silent for the first eleven, a gentle
+  dismissible banner for the last five, then a paywall that replaces the app.
+  Failed payments get a seven-day grace period before locking.
+- **The paywall itself** shows your real level, streak and XP, because your
+  history isn't gone and the screen shouldn't imply it is.
+- **Admin panel** at `/command-deck` — password-gated, separate from Supabase
+  auth so it still works when auth is what's broken. Metrics, user search,
+  comp/uncomp, trial extension, status overrides.
+- **Stripe** — checkout, billing portal and a signature-verified webhook,
+  spoken to over its REST API so there's no dependency to install until real
+  keys exist.
+
+### Security notes
+
+- `accounts` is **read-only to players** under RLS. Everything that decides
+  whether someone has paid is written by the service role — the Stripe webhook
+  and the admin panel — and can never be set from a browser.
+- The webhook rejects every request when `STRIPE_WEBHOOK_SECRET` is absent.
+  Without that, anyone who found the URL could mark any account as paid.
+- Admin server actions re-check the session themselves. Server actions are
+  ordinary POST endpoints with stable ids; a page-level check protects the
+  render, not the action.
+- `handle_new_user` is `SECURITY DEFINER` with an explicit `search_path`, which
+  is what stops it being a privilege-escalation vector.
+
+---
+
 ## [0.2.0] — 2026-08-10 · Stage 2: Day, documents and delivery
 
 Light mode, the two keepsake PDFs, email delivery, and editable settings.
@@ -116,5 +162,6 @@ Accounts and cloud sync, the two PDF documents, email delivery, the admin
 panel, Stripe billing and trial enforcement, and live push notifications.
 Those are Stages 2–4.
 
+[0.3.0]: https://github.com/dharoun-98/Personal-tracking-tool/releases/tag/v0.3.0
 [0.2.0]: https://github.com/dharoun-98/Personal-tracking-tool/releases/tag/v0.2.0
 [0.1.0]: https://github.com/dharoun-98/Personal-tracking-tool/releases/tag/v0.1.0

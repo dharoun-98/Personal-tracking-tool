@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Pencil, RotateCcw } from "lucide-react";
+import { ChevronRight, CloudUpload, Pencil, RotateCcw } from "lucide-react";
 import { MOTIVATION_STYLES, RHYTHMS, TIME_BUDGETS } from "@/lib/onboarding";
 import { levelTitle } from "@/lib/game";
 import { compactNumber } from "@/lib/format";
@@ -98,6 +98,23 @@ export default function ProfilePage() {
       <section>
         <SectionTitle>On your device</SectionTitle>
         <InstallCard />
+      </section>
+
+      {/* -------------------------------------------------------- Account */}
+      <section>
+        <SectionTitle>Account</SectionTitle>
+        <Link href="/account" className="panel tappable flex items-center gap-3 rounded-3xl p-4">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-violet/15 text-violet-soft">
+            <CloudUpload className="size-4.5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">Backup &amp; subscription</span>
+            <span className="mt-0.5 block text-2xs text-ink-faint">
+              Keep your world safe, and manage billing
+            </span>
+          </span>
+          <ChevronRight className="size-4 shrink-0 text-ink-faint" />
+        </Link>
       </section>
 
       {/* ----------------------------------------------------- Appearance */}
