@@ -8,6 +8,39 @@ Versions follow `MAJOR.MINOR.PATCH`. Until 1.0 the minor number tracks stages.
 
 ---
 
+## [0.3.1] — 2026-08-10 · First live round-trip
+
+Found by testing the deployed app against the real Supabase project with the
+publishable key — the same key any visitor can read out of the client bundle.
+
+### Fixed
+
+- **`admin_user_overview` was readable by anyone.** A Postgres view defaults
+  to `security_invoker = off`, so it runs with the view *owner's* privileges —
+  `postgres`, which has BYPASSRLS. PostgREST exposes public-schema views to the
+  anon key. Any anonymous caller could therefore have read every user's email,
+  subscription status and trial dates, straight past the row-level security on
+  the underlying tables.
+
+  It read as safe in testing only because there were no users yet: an empty
+  table and a wide-open view both return `[]`.
+
+  Fixed in `supabase/migrations/0002_secure_admin_view.sql` two independent
+  ways — `security_invoker = on` so the view honours the caller's RLS, and the
+  grants revoked from `anon` and `authenticated` so it isn't reachable at all.
+  **This migration must be run.**
+
+- **`middleware.ts` → `proxy.ts`.** Next 16 deprecated the middleware file
+  convention. Same behaviour, no more build warning.
+
+### Verified against the live project
+
+- Anonymous reads with the publishable key return `[]` on all seven tables.
+- An anonymous insert into `accounts` is refused:
+  `42501 new row violates row-level security policy`.
+
+---
+
 ## [0.3.0] — 2026-08-10 · Stage 3: Accounts, billing and the command deck
 
 Supabase accounts, cloud backup, trial enforcement, an admin panel, and

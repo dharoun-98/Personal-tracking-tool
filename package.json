@@ -1,6 +1,6 @@
 {
   "name": "personal-tracking-tool",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Play your own game of life — track health, wealth, connections, purpose, growth, inner peace and fun.",
   "scripts": {

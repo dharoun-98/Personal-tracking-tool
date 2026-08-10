@@ -35,6 +35,17 @@ yarn-error.log*
 # ...but the template belongs in the repo.
 !.env.example
 
+# Loose credential notes. Keys get pasted into scratch files while wiring up a
+# provider, and `git add -A` will happily commit them — this repo has already
+# had one close call and one real leak that way. Belt and braces.
+*.key
+*.pem
+*secret*.txt
+*password*.txt
+*credentials*.txt
+/Publicity key.txt
+/Secret key role.txt
+
 # claude code — keep the shared dev-server config, drop machine-local settings
 .claude/settings.local.json
 
