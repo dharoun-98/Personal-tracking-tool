@@ -6,6 +6,7 @@ import { isCloudEnabled } from "@/lib/supabase/config";
 import { Panel, SectionTitle } from "@/components/ui/panel";
 import { buttonClasses } from "@/components/ui/button-styles";
 import { SyncPanel } from "@/components/account/sync-panel";
+import { NotificationCard } from "@/components/notifications/notification-card";
 import { BillingPanel } from "@/components/account/billing-panel";
 
 export const metadata = { title: "Account" };
@@ -72,6 +73,11 @@ export default async function AccountPage() {
       <section>
         <SectionTitle>Backup</SectionTitle>
         <SyncPanel signedIn={signedIn} />
+      </section>
+
+      <section>
+        <SectionTitle>Notifications</SectionTitle>
+        <NotificationCard signedIn={signedIn} />
       </section>
 
       <section>

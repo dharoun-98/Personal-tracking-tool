@@ -8,6 +8,43 @@ Versions follow `MAJOR.MINOR.PATCH`. Until 1.0 the minor number tracks stages.
 
 ---
 
+## [0.4.0] — 2026-08-11 · Stage 4, part one: push notifications
+
+The foundation. Scheduled reminders and admin broadcast follow.
+
+### Added
+
+- **Push subscriptions** — `supabase/migrations/0003_push_notifications.sql`
+  adds `push_subscriptions` (one row per device, keyed on the endpoint so
+  re-subscribing updates rather than duplicates), notification preferences and
+  quiet hours on `profiles`, and a delivery log. RLS on both new tables.
+- **Send pipeline** using `web-push`. A real dependency this time rather than
+  raw fetch like Stripe: Web Push needs a VAPID-signed JWT plus ECDH, HKDF and
+  AES-128-GCM over the payload — cryptography to use, not to reimplement.
+- **Permission flow** that never fires on page load. Browsers allow the prompt
+  once; deny it and JavaScript can never ask again, so it explains what will
+  arrive before asking, and only from a deliberate tap.
+- **iOS handled honestly.** iPhone delivers push only to Home-Screen-installed
+  PWAs, and in a Safari tab the Push API isn't even defined. Rather than show a
+  dead button, it detects this and walks through installing first.
+- Test notification, and per-device turn-off.
+
+### Notes
+
+- Dead subscriptions are deleted on 404/410 from the push service. Keeping
+  them would mean retrying a dead endpoint forever and skewing delivery stats.
+- `players_due_for_reminder()` lives in SQL so the dispatcher fetches only rows
+  it will act on. Quiet hours are evaluated in the player's own timezone and
+  handle the wrap past midnight.
+- Everything is env-gated on the VAPID keys: without them the card hides
+  itself and the routes return a readable 503.
+
+### Still to come in Stage 4
+
+Scheduled reminders driven by pg_cron, admin broadcast, delivery analytics.
+
+---
+
 ## [0.3.2] — 2026-08-11 · Sync that you don't have to think about
 
 Signing in on a second device used to dead-end: an empty device meant the app
