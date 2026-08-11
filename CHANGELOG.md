@@ -8,6 +8,41 @@ Versions follow `MAJOR.MINOR.PATCH`. Until 1.0 the minor number tracks stages.
 
 ---
 
+## [0.4.1] — 2026-08-11 · Stage 4 complete: reminders and broadcast
+
+### Added
+
+- **Automatic reminders.** One hourly cron job
+  (`supabase/migrations/0004_reminder_cron.sql`) covers every player on earth,
+  because `players_due_for_reminder()` evaluates each person's local hour
+  against their own timezone. No cron per region, nothing to adjust for DST.
+- **Reminder copy** in the four companion voices, with one rule that matters
+  more than the wording: **if the board is already clear, it sends nothing.**
+  Buzzing someone to tell them they've finished is just buzzing someone.
+  Nothing ever mentions a streak being at risk.
+- **Broadcast from the command deck** — compose, pick a segment (everyone, on
+  trial, subscribed, lapsed, gone quiet), see a live lock-screen preview,
+  check the recipient count, then confirm. Two steps on purpose: a push can't
+  be recalled.
+
+### Security
+
+- `/api/push/dispatch` requires `CRON_SECRET`, compared in constant time, and
+  refuses everything when the variable is unset. That route can reach every
+  user's phone.
+- `/api/admin/broadcast` re-checks the admin session itself rather than
+  relying on the page.
+- Broadcast only reaches accounts with a live push subscription — the record
+  of consent — regardless of segment.
+
+### Fixed
+
+- Declining the browser's permission prompt showed "No problem — maybe later"
+  in red, as though something had broken. It's an answer, not an error, and
+  now reads neutral.
+
+---
+
 ## [0.4.0] — 2026-08-11 · Stage 4, part one: push notifications
 
 The foundation. Scheduled reminders and admin broadcast follow.

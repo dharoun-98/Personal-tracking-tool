@@ -101,8 +101,8 @@ docs/
 | --- | --- |
 | 1 ✅ | Playable core: onboarding, dashboard, check-ins, companion, PWA |
 | 2 ✅ | Light + dark themes, the two PDFs, email delivery, editable settings |
-| 3 ✅ | Supabase accounts, cloud backup, admin panel, Stripe billing, trial enforcement |
-| 4 | Live push notifications and reminders, deeper analytics |
+| 3 ✅ | Supabase accounts, cloud sync, admin panel, Stripe billing, trial enforcement |
+| 4 ✅ | Push notifications, automatic reminders, admin broadcast |
 
 ---
 

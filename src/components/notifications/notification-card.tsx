@@ -27,7 +27,9 @@ export function NotificationCard({ signedIn }: { signedIn: boolean }) {
   const [subscribed, setSubscribed] = useState(false);
   const [busy, setBusy] = useState<"enable" | "disable" | "test" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [tone, setTone] = useState<"info" | "error">("info");
+  // Three tones, not two: declining the browser prompt is neither a success
+  // nor an error, and colouring it as either misreads what happened.
+  const [tone, setTone] = useState<"neutral" | "success" | "error">("neutral");
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +64,7 @@ export function NotificationCard({ signedIn }: { signedIn: boolean }) {
   if (configured === false || support === "unsupported") return null;
   if (support === null || configured === null) return null;
 
-  const say = (text: string, kind: "info" | "error" = "info") => {
+  const say = (text: string, kind: "neutral" | "success" | "error" = "neutral") => {
     setTone(kind);
     setMessage(text);
   };
@@ -165,7 +167,7 @@ export function NotificationCard({ signedIn }: { signedIn: boolean }) {
                     setBusy(null);
                     say(
                       result.ok ? "Sent — it should arrive in a moment." : (result.message ?? "Couldn't send."),
-                      result.ok ? "info" : "error",
+                      result.ok ? "success" : "error",
                     );
                   }}
                 >
@@ -198,10 +200,15 @@ export function NotificationCard({ signedIn }: { signedIn: boolean }) {
                   setBusy(null);
                   if (result.ok) {
                     setSubscribed(true);
-                    say("Done. Try a test to see how it looks.");
+                    say("Done. Try a test to see how it looks.", "success");
                   } else {
                     setSupport(detectSupport());
-                    say(result.message ?? "Couldn't turn them on.", "error");
+                    // Dismissing the browser prompt isn't a failure — it's an
+                    // answer. Showing it in red made "maybe later" look broken.
+                    say(
+                      result.message ?? "Couldn't turn them on.",
+                      result.reason === "dismissed" ? "neutral" : "error",
+                    );
                   }
                 }}
               >
@@ -212,7 +219,16 @@ export function NotificationCard({ signedIn }: { signedIn: boolean }) {
           </div>
 
           {message && (
-            <p className={cn("mt-2.5 text-2xs", tone === "error" ? "text-danger" : "text-success")}>
+            <p
+              className={cn(
+                "mt-2.5 text-2xs",
+                tone === "error"
+                  ? "text-danger"
+                  : tone === "success"
+                    ? "text-success"
+                    : "text-ink-mute",
+              )}
+            >
               {message}
             </p>
           )}

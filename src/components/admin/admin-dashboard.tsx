@@ -15,6 +15,7 @@ import { useNowMs } from "@/lib/use-now";
 import { cn } from "@/lib/cn";
 import { Panel } from "@/components/ui/panel";
 import { Button } from "@/components/ui/button";
+import { BroadcastPanel } from "@/components/admin/broadcast-panel";
 
 /** The overview row carries everything `evaluateAccess` needs. */
 function accessFor(user: AdminUserOverviewRow, nowMs: number): AccessState {
@@ -127,6 +128,10 @@ export function AdminDashboard({
 
       </div>
 
+      <div className="mb-7">
+        <BroadcastPanel />
+      </div>
+
       <div className="mb-4 flex items-center gap-2 rounded-2xl border border-edge bg-surface px-3.5">
         <Search className="size-4 shrink-0 text-ink-faint" />
         <input
@@ -224,7 +229,7 @@ export function AdminDashboard({
       </div>
 
       <p className="mt-8 text-center text-2xs text-ink-faint">
-        Push notifications and broadcast messaging arrive with Stage 4.
+        Reminders send themselves hourly, in each player&apos;s own timezone.
       </p>
     </main>
   );
