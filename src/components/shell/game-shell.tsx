@@ -12,6 +12,7 @@ import { useNowMs } from "@/lib/use-now";
 import { cn } from "@/lib/cn";
 import { BottomNav, SideRail } from "@/components/shell/app-nav";
 import { BootSplash } from "@/components/shell/boot-splash";
+import { useSyncStatus } from "@/components/shell/sync-manager";
 import { Mascot } from "@/components/mascot/mascot";
 import { Paywall } from "@/components/billing/paywall";
 
@@ -41,12 +42,24 @@ export function GameShell({
   const onboarded = useGame((s) => s.onboardingComplete);
   const account = useGame((s) => s.account);
   const nowMs = useNowMs();
+  const syncPhase = useSyncStatus((s) => s.phase);
 
   const [dismissed, setDismissed] = useState(false);
 
+  /*
+   * Don't march a returning player through onboarding.
+   *
+   * A signed-in user on a new device has an empty store but a full account in
+   * the cloud. Redirecting on `!onboarded` alone would force them to invent a
+   * whole new life before they could reach the screen that restores their real
+   * one. So while a restore is in flight, wait.
+   */
+  const restoring = signedIn && (syncPhase === "idle" || syncPhase === "restoring");
+
   useEffect(() => {
-    if (hydrated && !onboarded) router.replace("/onboarding");
-  }, [hydrated, onboarded, router]);
+    if (!hydrated || onboarded || restoring) return;
+    router.replace("/onboarding");
+  }, [hydrated, onboarded, restoring, router]);
 
   const access = useMemo<AccessState>(() => {
     if (serverAccess) return serverAccess;
@@ -59,6 +72,7 @@ export function GameShell({
   }, [serverAccess, account, nowMs]);
 
   if (!hydrated) return <BootSplash />;
+  if (!onboarded && restoring) return <BootSplash label="Restoring your world…" />;
   if (!onboarded) return <BootSplash label="Setting things up…" />;
 
   if (access.level === "locked") {

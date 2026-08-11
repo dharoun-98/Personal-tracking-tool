@@ -46,6 +46,19 @@ export interface AccountState {
 export interface SyncState {
   lastPushedAt?: string;
   lastPulledAt?: string;
+  /**
+   * The value of `revision` at the moment of the last successful push.
+   *
+   * `revision > pushedRevision` means this device is holding changes the
+   * server hasn't seen — which is what distinguishes "safe to pull" from
+   * "both sides diverged, ask the player".
+   */
+  pushedRevision?: number;
+  /**
+   * `profiles.updated_at` as of the last time we synced. A newer value on the
+   * server means another device has written since.
+   */
+  serverStamp?: string;
   /** Message from the most recent failure, cleared on success. */
   error?: string | null;
 }
@@ -61,6 +74,14 @@ export interface GameState {
   coachCooldowns: Record<string, string>;
   account: AccountState;
   sync: SyncState;
+  /**
+   * Monotonic counter bumped on every change to game data.
+   *
+   * Cheaper and more reliable than comparing timestamps across devices with
+   * unsynchronised clocks — all it has to answer is "has anything changed here
+   * since we last pushed".
+   */
+  revision: number;
   onboardingComplete: boolean;
   lastSeenAt?: string;
   /** Set once the two documents have been generated at least once. */
@@ -93,6 +114,7 @@ export interface GameState {
   setHydrated: () => void;
   setAccount: (patch: Partial<AccountState>) => void;
   setSync: (patch: Partial<SyncState>) => void;
+  bumpRevision: () => void;
   /**
    * Wholesale replacement, used only by a cloud restore.
    *
@@ -128,6 +150,7 @@ const empty = {
   coachCooldowns: {} as Record<string, string>,
   account: initialAccount,
   sync: {} as SyncState,
+  revision: 0,
   onboardingComplete: false,
   lastSeenAt: undefined as string | undefined,
   reportsGeneratedAt: undefined as string | undefined,
@@ -259,6 +282,8 @@ export const useGame = create<GameState>()(
 
       setSync: (patch) => set((s) => ({ sync: { ...s.sync, ...patch } })),
 
+      bumpRevision: () => set((s) => ({ revision: s.revision + 1 })),
+
       replaceAll: ({ profile, onboardingComplete, quests, logs, goals, reflections, unlocked }) =>
         set({
           profile,
@@ -297,6 +322,7 @@ export const useGame = create<GameState>()(
         coachCooldowns: state.coachCooldowns,
         account: state.account,
         sync: state.sync,
+        revision: state.revision,
         onboardingComplete: state.onboardingComplete,
         lastSeenAt: state.lastSeenAt,
         reportsGeneratedAt: state.reportsGeneratedAt,

@@ -47,6 +47,10 @@ export interface RemoteSummary {
   logs: number;
   displayName: string | null;
   lastActivity: string | null;
+  /** `profiles.updated_at`, bumped by a trigger on every push. */
+  stamp: string | null;
+  /** True when the cloud copy has finished onboarding. */
+  onboarded: boolean;
 }
 
 export type SyncOutcome =
@@ -58,6 +62,16 @@ const FAILED = (message: string): SyncOutcome => ({
   reason: "failed",
   message,
 });
+
+/**
+ * True while a pull is writing the server's state into the store.
+ *
+ * The auto-sync watcher checks this so that applying a pull doesn't look like
+ * a local edit and immediately schedule a push back — a loop that would ping
+ * data between devices forever.
+ */
+let applyingRemote = false;
+export const isApplyingRemote = () => applyingRemote;
 
 async function requireSession() {
   const supabase = getSupabaseBrowser();
@@ -79,19 +93,26 @@ export async function describeRemote(): Promise<RemoteSummary | null> {
   const [quests, logs, profile, latest] = await Promise.all([
     supabase.from("quests").select("id", { count: "exact", head: true }).eq("user_id", userId),
     supabase.from("logs").select("id", { count: "exact", head: true }).eq("user_id", userId),
-    supabase.from("profiles").select("display_name, onboarding_complete").eq("id", userId).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("display_name, onboarding_complete, updated_at")
+      .eq("id", userId)
+      .maybeSingle(),
     supabase.from("logs").select("day").eq("user_id", userId).order("day", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   const questCount = quests.count ?? 0;
   const logCount = logs.count ?? 0;
+  const onboarded = !!profile.data?.onboarding_complete;
 
   return {
-    hasData: questCount > 0 || logCount > 0 || !!profile.data?.onboarding_complete,
+    hasData: questCount > 0 || logCount > 0 || onboarded,
     quests: questCount,
     logs: logCount,
     displayName: profile.data?.display_name ?? null,
     lastActivity: latest.data?.day ?? null,
+    stamp: profile.data?.updated_at ?? null,
+    onboarded,
   };
 }
 
@@ -105,13 +126,20 @@ export async function pushSnapshot(): Promise<SyncOutcome> {
   if (!userId) return { ok: false, reason: "signed-out", message: "You're not signed in." };
 
   const state = useGame.getState();
+  // Captured before any awaits: anything the player changes mid-push belongs
+  // to the *next* push, and must not be marked as already sent.
+  const revisionAtStart = state.revision;
+  let stamp: string | null = null;
 
   try {
     if (state.profile) {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .upsert(profileToRow(state.profile, userId, state.onboardingComplete));
+        .upsert(profileToRow(state.profile, userId, state.onboardingComplete))
+        .select("updated_at")
+        .maybeSingle();
       if (error) throw error;
+      stamp = (data as { updated_at?: string } | null)?.updated_at ?? null;
     }
 
     const quests = state.quests.map((q) => questToRow(q, userId));
@@ -150,7 +178,12 @@ export async function pushSnapshot(): Promise<SyncOutcome> {
     await pruneRemote(supabase, userId, "logs", logs.map((l) => l.id));
     await pruneRemote(supabase, userId, "goals", goals.map((g) => g.id));
 
-    useGame.getState().setSync({ lastPushedAt: new Date().toISOString(), error: null });
+    useGame.getState().setSync({
+      lastPushedAt: new Date().toISOString(),
+      pushedRevision: revisionAtStart,
+      serverStamp: stamp ?? undefined,
+      error: null,
+    });
     return { ok: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Backup failed.";
@@ -213,17 +246,32 @@ export async function pullSnapshot(): Promise<SyncOutcome> {
 
     // The client is untyped, so name the row shapes here — this is the seam
     // where database columns become application types.
-    useGame.getState().replaceAll({
-      profile: profile.data ? rowToProfile(profile.data as ProfileRow) : null,
-      onboardingComplete: (profile.data as ProfileRow | null)?.onboarding_complete ?? false,
-      quests: ((quests.data ?? []) as QuestRow[]).map(rowToQuest),
-      logs: ((logs.data ?? []) as LogRow[]).map(rowToLog),
-      goals: ((goals.data ?? []) as GoalRow[]).map(rowToGoal),
-      reflections: ((reflections.data ?? []) as ReflectionRow[]).map(rowToReflection),
-      unlocked: ((unlocked.data ?? []) as UnlockedAchievementRow[]).map(rowToAchievement),
-    });
+    const profileRow = profile.data as ProfileRow | null;
 
-    useGame.getState().setSync({ lastPulledAt: new Date().toISOString(), error: null });
+    applyingRemote = true;
+    try {
+      useGame.getState().replaceAll({
+        profile: profileRow ? rowToProfile(profileRow) : null,
+        onboardingComplete: profileRow?.onboarding_complete ?? false,
+        quests: ((quests.data ?? []) as QuestRow[]).map(rowToQuest),
+        logs: ((logs.data ?? []) as LogRow[]).map(rowToLog),
+        goals: ((goals.data ?? []) as GoalRow[]).map(rowToGoal),
+        reflections: ((reflections.data ?? []) as ReflectionRow[]).map(rowToReflection),
+        unlocked: ((unlocked.data ?? []) as UnlockedAchievementRow[]).map(rowToAchievement),
+      });
+
+      // We now hold exactly what the server holds, so this device has nothing
+      // outstanding — whatever the revision ended up as, that's the synced point.
+      useGame.getState().setSync({
+        lastPulledAt: new Date().toISOString(),
+        pushedRevision: useGame.getState().revision,
+        serverStamp: profileRow?.updated_at ?? undefined,
+        error: null,
+      });
+    } finally {
+      applyingRemote = false;
+    }
+
     return { ok: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Restore failed.";

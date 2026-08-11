@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
@@ -114,9 +115,24 @@ export function OnboardingFlow() {
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           />
         </div>
-        <p className="mt-2 text-2xs tracking-[0.14em] text-ink-faint uppercase">
-          Step {index + 1} of {STEP_ORDER.length}
-        </p>
+        <div className="mt-2 flex items-baseline justify-between gap-3">
+          <p className="text-2xs tracking-[0.14em] text-ink-faint uppercase">
+            Step {index + 1} of {STEP_ORDER.length}
+          </p>
+          {/*
+            An escape hatch for anyone who already has an account and has
+            landed here on a new device. Without it, the only way to reach the
+            restore is to complete an onboarding they have already done once.
+          */}
+          {index === 0 && (
+            <Link
+              href="/auth/sign-in"
+              className="text-2xs font-semibold text-violet-soft underline underline-offset-2"
+            >
+              I already have an account
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Step body */}

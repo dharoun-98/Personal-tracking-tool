@@ -102,7 +102,10 @@ export function AuthForm({ mode }: { mode: Mode }) {
         if (error) throw error;
       }
 
-      router.push("/account?welcome=1");
+      // Straight to the board. The sync manager restores whatever this account
+      // already has before the shell renders, so there's no reason to detour
+      // through an account screen and ask them to press a button.
+      router.push("/dashboard");
       router.refresh();
     } catch (caught) {
       const message =

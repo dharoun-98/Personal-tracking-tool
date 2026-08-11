@@ -8,6 +8,42 @@ Versions follow `MAJOR.MINOR.PATCH`. Until 1.0 the minor number tracks stages.
 
 ---
 
+## [0.3.2] — 2026-08-11 · Sync that you don't have to think about
+
+Signing in on a second device used to dead-end: an empty device meant the app
+sent you to onboarding, and onboarding was the only route to the screen that
+could restore the world you already had. You had to invent a new life before
+you could get your real one back.
+
+### Changed
+
+- **Sync is automatic.** Changes push on a 2.5-second debounce, on tab hide,
+  and when the connection returns. Signing in anywhere pulls your world down
+  before the app renders. No buttons.
+- **A signed-in player is never sent to onboarding.** The shell waits for the
+  restore and shows "Restoring your world…" instead of redirecting.
+- **Sign in from the landing page**, and from step one of onboarding — the two
+  places a returning player on a new device actually lands.
+- Signing in goes straight to the dashboard rather than an account screen.
+
+### How it decides, without a CRDT
+
+Two counters answer "which side is authoritative" cheaply:
+
+- `revision > pushedRevision` — this device has edits the server hasn't seen.
+- `profiles.updated_at > serverStamp` — another device has written since.
+
+Neither → nothing to do. One → that side wins, silently. **Both** → real
+divergence, and it asks. That last case needs edits on two devices between
+syncs, which is rare enough to justify interrupting for, and the alternative
+is silently discarding somebody's streak.
+
+A pull sets a flag the watcher checks, so applying the server's data doesn't
+read as a local edit and bounce straight back — the loop that would otherwise
+ping data between devices forever.
+
+---
+
 ## [0.3.1] — 2026-08-10 · First live round-trip
 
 Found by testing the deployed app against the real Supabase project with the
