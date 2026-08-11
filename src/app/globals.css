@@ -405,13 +405,26 @@
     animation: var(--animate-shimmer);
   }
 
-  .scroll-row {
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+  /*
+   * Momentum-scrolling row — phones only.
+   *
+   * A swipeable strip with a hidden scrollbar is the right call on touch and
+   * the wrong one on a desktop pointer: there's nothing to grab, the wheel
+   * scrolls the page rather than the strip, and content sits off-screen with
+   * no affordance saying so. Above md there's room to wrap, so we do.
+   *
+   * Pair with `md:flex-wrap md:mx-0 md:px-0` at the call site to undo the
+   * bleed-to-edge margins that only make sense while scrolling.
+   */
+  @media (max-width: 47.99rem) {
+    .scroll-row {
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .scroll-row::-webkit-scrollbar { display: none; }
   }
-  .scroll-row::-webkit-scrollbar { display: none; }
 
   .pad-safe-top { padding-top: var(--safe-top); }
   .pad-safe-bottom { padding-bottom: var(--safe-bottom); }

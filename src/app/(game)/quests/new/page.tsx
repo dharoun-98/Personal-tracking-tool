@@ -118,7 +118,7 @@ export default function NewQuestPage() {
       {/* --------------------------------------------------------- Domain */}
       <section>
         <SectionTitle>Which part of your life?</SectionTitle>
-        <div className="scroll-row -mx-5 flex gap-2.5 px-5 pb-1">
+        <div className="scroll-row -mx-5 flex gap-2.5 px-5 pb-1 md:mx-0 md:flex-wrap md:px-0">
           {DOMAINS.map((d) => {
             const active = d.id === domain;
             return (

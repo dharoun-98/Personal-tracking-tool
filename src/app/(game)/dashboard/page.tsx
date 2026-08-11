@@ -244,7 +244,7 @@ export default function DashboardPage() {
         >
           Your constellation
         </SectionTitle>
-        <div className="scroll-row -mx-5 flex gap-4 px-5 pb-2">
+        <div className="scroll-row -mx-5 flex gap-4 px-5 pb-2 md:mx-0 md:flex-wrap md:gap-x-6 md:gap-y-5 md:px-0">
           {orderedDomains.map((id) => (
             <div key={id} className="shrink-0 scroll-ml-5" style={{ scrollSnapAlign: "start" }}>
               <DomainOrb state={domains[id]} href={`/domains/${id}`} size="md" />
