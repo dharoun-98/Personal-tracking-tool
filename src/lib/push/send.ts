@@ -127,7 +127,16 @@ export async function sendToUser(
     detail: `sent ${result.sent}, failed ${result.failed}, pruned ${result.pruned}`,
   });
 
-  if (result.sent > 0) {
+  /*
+   * Only a reminder resets the reminder cooldown.
+   *
+   * `last_notified_at` gates the once-per-12-hours rule in
+   * players_due_for_reminder(). Stamping it for every kind meant a user
+   * pressing "send a test" silenced their next real reminder — and an admin
+   * broadcast would silence everyone's. The column answers "when did we last
+   * *remind* you", so only reminders may write it.
+   */
+  if (result.sent > 0 && kind.startsWith("reminder")) {
     await admin
       .from("profiles")
       .update({ last_notified_at: new Date().toISOString() })
