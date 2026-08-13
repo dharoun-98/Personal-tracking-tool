@@ -1,5 +1,5 @@
 import { evaluateAccess, type AccessState } from "@/lib/billing/access";
-import { getSupabaseServer } from "@/lib/supabase/server";
+import { getSupabaseServer, isMissingSession } from "@/lib/supabase/server";
 import { isCloudEnabled } from "@/lib/supabase/config";
 import { GameShell } from "@/components/shell/game-shell";
 import { SyncManager } from "@/components/shell/sync-manager";
@@ -31,7 +31,7 @@ export default async function GameLayout({
       error: identityError,
     } = await supabase.auth.getUser();
 
-    if (identityError) {
+    if (identityError && !isMissingSession(identityError)) {
       accountError =
         "We couldn't securely verify whether this device is signed in. Your local data has not been changed.";
     } else if (user) {

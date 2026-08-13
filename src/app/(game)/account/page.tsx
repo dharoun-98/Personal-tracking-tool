@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, LogOut } from "lucide-react";
 import { evaluateAccess } from "@/lib/billing/access";
-import { getSupabaseServer } from "@/lib/supabase/server";
+import { getSupabaseServer, isMissingSession } from "@/lib/supabase/server";
 import { isCloudEnabled } from "@/lib/supabase/config";
 import { Panel, SectionTitle } from "@/components/ui/panel";
 import { buttonClasses } from "@/components/ui/button-styles";
@@ -43,7 +43,7 @@ export default async function AccountPage({
       data: { user },
       error: identityError,
     } = await supabase.auth.getUser();
-    if (identityError) {
+    if (identityError && !isMissingSession(identityError)) {
       accountLoadError =
         "We couldn't securely verify whether this device is signed in. Your local world has not been changed.";
     } else if (user) {

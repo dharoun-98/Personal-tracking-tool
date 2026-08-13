@@ -36,6 +36,19 @@ export async function getSupabaseServer(): Promise<SupabaseClient | null> {
 }
 
 /**
+ * True when the only thing "wrong" is that nobody is signed in.
+ *
+ * `auth.getUser()` reports a missing session as an error rather than a null
+ * user, so a plain signed-out visitor is indistinguishable from a genuine
+ * identity failure unless you check for this. Treating the two the same walls
+ * every signed-out player out of a game that's meant to be playable with no
+ * account at all.
+ */
+export function isMissingSession(error: unknown): boolean {
+  return !!error && (error as { name?: string }).name === "AuthSessionMissingError";
+}
+
+/**
  * Service-role client. Bypasses row-level security entirely.
  *
  * Only ever used from server code that has already established authority of

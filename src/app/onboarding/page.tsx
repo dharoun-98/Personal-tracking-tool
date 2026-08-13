@@ -1,4 +1,4 @@
-import { getSupabaseServer } from "@/lib/supabase/server";
+import { getSupabaseServer, isMissingSession } from "@/lib/supabase/server";
 import { OnboardingEntry } from "@/components/onboarding/onboarding-entry";
 
 export default async function OnboardingPage() {
@@ -9,7 +9,9 @@ export default async function OnboardingPage() {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
-  if (authError) return <OnboardingEntry cloudWorld="unknown" />;
+  if (authError && !isMissingSession(authError)) {
+    return <OnboardingEntry cloudWorld="unknown" />;
+  }
   if (!user) return <OnboardingEntry cloudWorld="signed-out" />;
 
   const { data: profile, error } = await supabase
