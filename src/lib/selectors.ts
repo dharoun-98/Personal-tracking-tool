@@ -14,6 +14,9 @@ export interface GameSnapshot {
   dueToday: DueQuest[];
   remainingToday: DueQuest[];
   doneToday: DueQuest[];
+  partialToday: DueQuest[];
+  skippedToday: DueQuest[];
+  resolvedToday: DueQuest[];
   domains: Record<DomainId, DomainState>;
   level: LevelInfo;
   streak: number;
@@ -39,16 +42,23 @@ export function useSnapshot(): GameSnapshot {
     const today = buildToday(quests, logs, day);
 
     const dueToday = today.filter((t) => t.due);
-    const doneToday = dueToday.filter((t) => t.log && t.log.status !== "skipped");
-    const remainingToday = dueToday.filter(
-      (t) => !t.log || t.log.status === "skipped",
-    );
+    // A response and a completion are different things. Partial work and an
+    // intentional skip both settle the quest for today, but neither should be
+    // reported as fully done.
+    const doneToday = dueToday.filter((t) => t.log?.status === "done");
+    const partialToday = dueToday.filter((t) => t.log?.status === "partial");
+    const skippedToday = dueToday.filter((t) => t.log?.status === "skipped");
+    const resolvedToday = dueToday.filter((t) => t.log != null);
+    const remainingToday = dueToday.filter((t) => !t.log);
 
     return {
       today,
       dueToday,
       remainingToday,
       doneToday,
+      partialToday,
+      skippedToday,
+      resolvedToday,
       domains: ctx.domains,
       level: overallLevel(ctx.totalXp),
       streak: ctx.overallStreak,

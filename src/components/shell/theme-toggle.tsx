@@ -41,7 +41,7 @@ export function ThemeToggle({ className }: { className?: string }) {
             title={option.hint}
             onClick={() => setPreference(option.value)}
             className={cn(
-              "tappable relative flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2.5",
+              "tappable relative flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2.5",
               "text-xs font-semibold transition-colors",
               active ? "text-ink" : "text-ink-mute hover:text-ink-dim",
             )}
@@ -81,7 +81,7 @@ export function ThemeCycleButton({ className }: { className?: string }) {
       onClick={() => setPreference(next)}
       aria-label={`Theme: ${preference}. Switch to ${next}.`}
       className={cn(
-        "tappable grid size-9 place-items-center rounded-xl border border-edge bg-surface text-ink-mute",
+        "tappable grid size-11 place-items-center rounded-xl border border-edge bg-surface text-ink-mute",
         "transition-colors hover:text-ink",
         className,
       )}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { isAdminAuthenticated, isAdminConfigured } from "@/lib/admin/session";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import type { AdminUserOverviewRow } from "@/lib/supabase/types";
@@ -6,7 +7,7 @@ import { AdminDashboard } from "@/components/admin/admin-dashboard";
 import { Panel } from "@/components/ui/panel";
 
 export const metadata = {
-  title: "Command deck",
+  title: "Admin dashboard",
   // Never let an admin surface into an index.
   robots: { index: false, follow: false, nocache: true },
 };
@@ -25,6 +26,12 @@ export default async function CommandDeckPage() {
             <code className="text-ink">ADMIN_SESSION_SECRET</code> of at least 24
             characters, then redeploy.
           </p>
+          <Link
+            href="/"
+            className="tappable mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-surface-2 px-4 text-sm font-semibold text-ink-dim hover:text-ink"
+          >
+            Back to Lifequest
+          </Link>
         </Panel>
       </main>
     );

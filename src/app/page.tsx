@@ -1,9 +1,21 @@
 import Link from "next/link";
-import { Bell, Download, Gamepad2, LineChart, ShieldCheck, Smartphone } from "lucide-react";
+import {
+  Bell,
+  CircleUser,
+  Download,
+  Gamepad2,
+  LineChart,
+  LogIn,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+} from "lucide-react";
 import { DOMAINS } from "@/lib/domains";
 import { DomainIcon } from "@/components/game/domain-icon";
 import { LandingCta } from "@/components/shell/landing-cta";
 import { Panel } from "@/components/ui/panel";
+import { buttonClasses } from "@/components/ui/button-styles";
+import { getSupabaseServer } from "@/lib/supabase/server";
 
 const FEATURES = [
   {
@@ -14,7 +26,7 @@ const FEATURES = [
   {
     icon: Smartphone,
     title: "A real app on your phone",
-    body: "Install it to your home screen and it behaves like any other app: full screen, offline-capable, instant. No app store required.",
+    body: "Install it to your home screen for a full-screen, instant launch. Your progress stays safe on the device; reconnect to open a new screen. No app store required.",
   },
   {
     icon: Bell,
@@ -34,7 +46,7 @@ const FEATURES = [
   {
     icon: ShieldCheck,
     title: "Your data, your business",
-    body: "No AI reading your journal, no ad tech, no selling anything on. It's a tracker that works for you and only you.",
+    body: "No AI reading your journal, no ad tech, no selling anything on. Downloads stay on your device; PDFs only leave it when you explicitly ask us to email them.",
   },
 ];
 
@@ -56,11 +68,44 @@ const STEPS = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  let signedIn = false;
+  let email: string | null = null;
+  const supabase = await getSupabaseServer();
+  if (supabase) {
+    const { data } = await supabase.auth.getUser();
+    signedIn = !!data.user;
+    email = data.user?.email ?? null;
+  }
+
   return (
     <main className="mx-auto w-full max-w-5xl px-5 pb-20 pad-safe-top">
+      <nav className="flex min-h-16 items-center justify-between border-b border-hairline/60" aria-label="Account">
+        <Link
+          href="/"
+          aria-label="Lifequest home"
+          className="tappable inline-flex min-h-11 items-center gap-2 font-display text-sm font-bold"
+        >
+          <span className="grid size-8 place-items-center rounded-xl bg-violet/15 text-gold-ink">
+            <Sparkles className="size-4" aria-hidden />
+          </span>
+          Lifequest
+        </Link>
+        <Link
+          href={signedIn ? "/account" : "/auth/sign-in"}
+          className={buttonClasses({ variant: "secondary", size: "sm" })}
+          aria-label={signedIn && email ? `Account, signed in as ${email}` : undefined}
+        >
+          {signedIn ? (
+            <CircleUser className="size-4" aria-hidden />
+          ) : (
+            <LogIn className="size-4" aria-hidden />
+          )}
+          {signedIn ? "Account" : "Sign in"}
+        </Link>
+      </nav>
       {/* ---------------------------------------------------------- Hero */}
-      <section className="pt-16 pb-14 text-center sm:pt-24">
+      <section className="pt-12 pb-14 text-center sm:pt-20">
         <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-violet/30 bg-violet/10 px-3.5 py-1.5 text-2xs font-medium tracking-wide text-violet-soft uppercase">
           <span className="size-1.5 animate-pulse-glow rounded-full bg-cyan" />
           Now in early access
@@ -107,7 +152,7 @@ export default function Home() {
           ))}
         </div>
 
-        <LandingCta />
+        <LandingCta signedIn={signedIn} />
       </section>
 
       {/* ------------------------------------------------------ How it works */}
@@ -159,7 +204,7 @@ export default function Home() {
               Sixteen days free, no card, no pressure. If it isn&apos;t making your life
               better, walk away — you keep your report and your promise letter either way.
             </p>
-            <LandingCta />
+            <LandingCta signedIn={signedIn} />
           </div>
         </Panel>
       </section>

@@ -50,10 +50,29 @@ export default function DashboardPage() {
     return () => clearTimeout(timer);
   }, [focusId]);
 
-  const { dueToday, doneToday, remainingToday, domains, level, streak } = snapshot;
+  const {
+    dueToday,
+    doneToday,
+    partialToday,
+    skippedToday,
+    resolvedToday,
+    remainingToday,
+    domains,
+    level,
+    streak,
+  } = snapshot;
 
-  const dayProgress = dueToday.length === 0 ? 0 : doneToday.length / dueToday.length;
-  const allDone = dueToday.length > 0 && remainingToday.length === 0;
+  const dayProgress = dueToday.length === 0 ? 0 : resolvedToday.length / dueToday.length;
+  const allResolved = dueToday.length > 0 && remainingToday.length === 0;
+  const fullyCompleted = dueToday.length > 0 && doneToday.length === dueToday.length;
+  const outcomeSummary = [
+    `${doneToday.length} done`,
+    partialToday.length > 0 ? `${partialToday.length} partial` : null,
+    skippedToday.length > 0 ? `${skippedToday.length} skipped` : null,
+    remainingToday.length > 0 ? `${remainingToday.length} left` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const first = profile?.displayName.split(" ")[0] ?? "there";
 
   const orderedDomains = useMemo(
@@ -104,7 +123,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setWelcome(false)}
-                className="tappable mt-2.5 text-2xs font-semibold text-gold-ink/80 underline underline-offset-2"
+                className="tappable mt-1 inline-flex min-h-11 items-center text-2xs font-semibold text-gold-ink/80 underline underline-offset-2"
               >
                 Got it
               </button>
@@ -127,12 +146,16 @@ export default function DashboardPage() {
             color="var(--color-cyan)"
             glow
           >
-            <div className="text-center">
+            <div
+              className="text-center"
+              role="status"
+              aria-label={`${resolvedToday.length} of ${dueToday.length} quests resolved today. ${outcomeSummary}.`}
+            >
               <p className="font-display text-xl leading-none font-extrabold tabular-nums">
-                {doneToday.length}
+                {resolvedToday.length}
                 <span className="text-ink-faint">/{dueToday.length}</span>
               </p>
-              <p className="mt-0.5 text-2xs text-ink-faint">today</p>
+              <p className="mt-0.5 text-2xs text-ink-faint">resolved</p>
             </div>
           </ProgressRing>
 
@@ -154,6 +177,11 @@ export default function DashboardPage() {
             </p>
           </div>
         </div>
+        {dueToday.length > 0 && (
+          <p className="relative mt-4 border-t border-hairline/60 pt-3 text-center text-xs text-ink-mute">
+            {outcomeSummary}
+          </p>
+        )}
       </Panel>
 
       {/* ---------------------------------------------------------- Today */}
@@ -162,14 +190,14 @@ export default function DashboardPage() {
           action={
             <Link
               href="/quests/new"
-              className="tappable inline-flex items-center gap-1 text-2xs font-semibold text-violet-soft"
+              className="tappable inline-flex min-h-11 min-w-11 items-center justify-center gap-1 text-2xs font-semibold text-violet-soft"
             >
               <Plus className="size-3.5" />
               Add quest
             </Link>
           }
         >
-          {allDone ? "Today — complete" : "Today"}
+          {fullyCompleted ? "Today — complete" : allResolved ? "Today — resolved" : "Today"}
         </SectionTitle>
 
         {dueToday.length === 0 ? (
@@ -210,19 +238,34 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {allDone && (
+        {allResolved && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             className="mt-3"
           >
-            <Panel className="border-success/30 bg-success/8 p-4 text-center">
-              <p className="text-sm font-semibold text-success">
-                Board cleared. Every single thing.
+            <Panel
+              className={cn(
+                "p-4 text-center",
+                fullyCompleted
+                  ? "border-success/30 bg-success/8"
+                  : "border-cyan/30 bg-cyan/8",
+              )}
+            >
+              <p
+                className={cn(
+                  "text-sm font-semibold",
+                  fullyCompleted ? "text-success" : "text-cyan-ink",
+                )}
+              >
+                {fullyCompleted ? "Board cleared. Every single thing." : "Today's board is settled."}
               </p>
               <p className="mt-1 text-xs text-ink-dim">
-                Rest is part of the game. Go enjoy the rest of your{" "}
-                {part === "morning" ? "day" : "evening"}.
+                {fullyCompleted
+                  ? `Rest is part of the game. Go enjoy the rest of your ${
+                      part === "morning" ? "day" : "evening"
+                    }.`
+                  : `${outcomeSummary}. Every quest has an answer, so nothing is waiting on you.`}
               </p>
             </Panel>
           </motion.div>
@@ -235,7 +278,7 @@ export default function DashboardPage() {
           action={
             <Link
               href="/map"
-              className="tappable inline-flex items-center gap-0.5 text-2xs font-semibold text-violet-soft"
+              className="tappable inline-flex min-h-11 min-w-11 items-center justify-center gap-0.5 text-2xs font-semibold text-violet-soft"
             >
               Full map
               <ChevronRight className="size-3.5" />

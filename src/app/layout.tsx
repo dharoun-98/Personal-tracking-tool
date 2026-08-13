@@ -66,10 +66,6 @@ export const viewport: Viewport = {
   colorScheme: "light dark",
   width: "device-width",
   initialScale: 1,
-  // Locks the layout to app-like behaviour: no pinch zoom, no rubber-band
-  // resize when the on-screen keyboard opens.
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -86,12 +82,20 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-dvh antialiased">
+        <a
+          href="#main-content"
+          className="fixed top-2 left-2 z-[100] inline-flex min-h-11 -translate-y-20 items-center rounded-xl bg-violet px-4 py-2 text-sm font-semibold text-white transition-transform focus:translate-y-0"
+        >
+          Skip to main content
+        </a>
         <ThemeScript />
         <StarField />
         <StoreHydrator />
         <ThemeProvider />
         <ServiceWorkerBridge />
-        <div className="relative z-10">{children}</div>
+        <div id="main-content" tabIndex={-1} className="relative z-10">
+          {children}
+        </div>
       </body>
     </html>
   );

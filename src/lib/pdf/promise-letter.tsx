@@ -20,8 +20,8 @@ import type { DocumentData } from "./generate";
  * time. Everything here is in service of it being worth keeping: serif text,
  * generous margins, one page of substance, a place to sign.
  *
- * The player's promise text is reproduced verbatim and never edited,
- * summarised or prettied up. It is the entire point of the document.
+ * The player's currently saved promise is reproduced verbatim: the generator
+ * never summarises or pretties it up. It is the entire point of the document.
  * ==================================================================== */
 
 const s = StyleSheet.create({
@@ -178,11 +178,11 @@ function Ornament() {
 }
 
 export function PromiseLetter({ data }: { data: DocumentData }) {
-  const { profile, startedAt, generatedAt } = data;
+  const { profile, generatedAt } = data;
   const name = profile.displayName;
   const first = name.split(" ")[0] || name;
   const months = profile.promiseHorizonMonths;
-  const openOn = addMonths(startedAt, months);
+  const openOn = addMonths(generatedAt, months);
   const focus = profile.priorities.slice(0, 3);
   const promise = profile.promise?.trim();
 
@@ -190,7 +190,7 @@ export function PromiseLetter({ data }: { data: DocumentData }) {
     <Document
       title={`Lifequest — Promise to Future Self — ${name}`}
       author={name}
-      subject={`Written ${formatDate(startedAt)}, to be opened ${formatDate(openOn)}`}
+      subject={`Generated ${formatDate(generatedAt)}, to be opened ${formatDate(openOn)}`}
       creator="Lifequest"
       producer="Lifequest"
     >
@@ -198,7 +198,7 @@ export function PromiseLetter({ data }: { data: DocumentData }) {
         <Text style={s.wordmark}>LIFEQUEST</Text>
         <Text style={s.title}>A Promise to{"\n"}Your Future Self</Text>
         <Text style={s.subtitle}>
-          Written by {name} on {formatDate(startedAt)}
+          Generated for {name} on {formatDate(generatedAt)}
         </Text>
 
         <Text style={s.salutation}>{first},</Text>
@@ -206,8 +206,8 @@ export function PromiseLetter({ data }: { data: DocumentData }) {
         {promise ? (
           <>
             <Text style={s.preamble}>
-              You wrote this at the start, before any of it had happened. In your
-              own words, this is what you said you were going to do:
+              This is the promise currently saved in Lifequest. In your own
+              words, this is what you intend to do:
             </Text>
             <View style={s.promiseBlock}>
               <Text style={s.promiseText}>
@@ -218,10 +218,9 @@ export function PromiseLetter({ data }: { data: DocumentData }) {
         ) : (
           <>
             <Text style={s.preamble}>
-              You skipped the promise when you set this up — which is allowed, and
-              more honest than writing something you did not mean. The rest of the
-              letter still stands, and the page below is yours whenever you are
-              ready to fill it in.
+              You have not written a promise yet — which is allowed, and more
+              honest than writing something you do not mean. The page below is
+              yours whenever you are ready to fill it in.
             </Text>
             <View style={s.promiseBlock}>
               <Text style={[s.promiseText, { color: INK.faint }]}>
@@ -238,8 +237,8 @@ export function PromiseLetter({ data }: { data: DocumentData }) {
         {focus.length > 0 && (
           <View style={s.focusList}>
             <Text style={s.body}>
-              These are the three you chose to work on first, and what you said
-              winning would look like in each:
+              These are the areas currently marked as your focus, and what
+              winning looks like in each:
             </Text>
             {focus.map((id) => {
               const domain = getDomain(id);

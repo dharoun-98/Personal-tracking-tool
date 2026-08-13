@@ -60,9 +60,37 @@ export function NotificationCard({ signedIn }: { signedIn: boolean }) {
     };
   }, []);
 
-  // Nothing to offer: no VAPID keys, or a browser with no Push API at all.
-  if (configured === false || support === "unsupported") return null;
-  if (support === null || configured === null) return null;
+  if (support === null || configured === null) {
+    return (
+      <Panel className="p-4" aria-busy="true">
+        <p className="text-sm font-semibold">Checking notification support…</p>
+        <p className="mt-1 text-xs text-ink-mute">
+          This only takes a moment.
+        </p>
+      </Panel>
+    );
+  }
+
+  // Keep the section honest instead of leaving a mysterious empty heading.
+  if (configured === false || support === "unsupported") {
+    return (
+      <Panel className="p-4">
+        <div className="flex items-start gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-surface-2 text-ink-faint">
+            <BellOff className="size-4.5" aria-hidden />
+          </span>
+          <div>
+            <p className="text-sm font-semibold">Notifications aren&apos;t available here</p>
+            <p className="mt-1 text-xs leading-relaxed text-ink-mute">
+              {support === "unsupported"
+                ? "This browser does not support web push notifications. Your check-in rhythm still shapes the in-app experience."
+                : "This installation has not enabled server notifications. Everything else works normally."}
+            </p>
+          </div>
+        </div>
+      </Panel>
+    );
+  }
 
   const say = (text: string, kind: "neutral" | "success" | "error" = "neutral") => {
     setTone(kind);
@@ -162,13 +190,20 @@ export function NotificationCard({ signedIn }: { signedIn: boolean }) {
                   loading={busy === "test"}
                   onClick={async () => {
                     setBusy("test");
-                    const response = await fetch("/api/push/test", { method: "POST" });
-                    const result = await response.json().catch(() => ({}));
-                    setBusy(null);
-                    say(
-                      result.ok ? "Sent — it should arrive in a moment." : (result.message ?? "Couldn't send."),
-                      result.ok ? "success" : "error",
-                    );
+                    try {
+                      const response = await fetch("/api/push/test", { method: "POST" });
+                      const result = await response.json().catch(() => ({}));
+                      say(
+                        result.ok
+                          ? "Sent — it should arrive in a moment."
+                          : (result.message ?? "Couldn't send."),
+                        result.ok ? "success" : "error",
+                      );
+                    } catch {
+                      say("Couldn't reach the notification service. Try again.", "error");
+                    } finally {
+                      setBusy(null);
+                    }
                   }}
                 >
                   <Send className="size-3.5" />
@@ -180,10 +215,15 @@ export function NotificationCard({ signedIn }: { signedIn: boolean }) {
                   loading={busy === "disable"}
                   onClick={async () => {
                     setBusy("disable");
-                    await disablePush();
-                    setSubscribed(false);
-                    setBusy(null);
-                    say("Turned off. Nothing more will arrive.");
+                    try {
+                      await disablePush();
+                      setSubscribed(false);
+                      say("Turned off. Nothing more will arrive.", "success");
+                    } catch {
+                      say("Couldn't turn notifications off. Try again.", "error");
+                    } finally {
+                      setBusy(null);
+                    }
                   }}
                 >
                   Turn off
@@ -196,19 +236,24 @@ export function NotificationCard({ signedIn }: { signedIn: boolean }) {
                 loading={busy === "enable"}
                 onClick={async () => {
                   setBusy("enable");
-                  const result = await enablePush();
-                  setBusy(null);
-                  if (result.ok) {
-                    setSubscribed(true);
-                    say("Done. Try a test to see how it looks.", "success");
-                  } else {
-                    setSupport(detectSupport());
-                    // Dismissing the browser prompt isn't a failure — it's an
-                    // answer. Showing it in red made "maybe later" look broken.
-                    say(
-                      result.message ?? "Couldn't turn them on.",
-                      result.reason === "dismissed" ? "neutral" : "error",
-                    );
+                  try {
+                    const result = await enablePush();
+                    if (result.ok) {
+                      setSubscribed(true);
+                      say("Done. Try a test to see how it looks.", "success");
+                    } else {
+                      setSupport(detectSupport());
+                      // Dismissing the browser prompt isn't a failure — it's an
+                      // answer. Showing it in red made "maybe later" look broken.
+                      say(
+                        result.message ?? "Couldn't turn them on.",
+                        result.reason === "dismissed" ? "neutral" : "error",
+                      );
+                    }
+                  } catch {
+                    say("Couldn't turn notifications on. Try again.", "error");
+                  } finally {
+                    setBusy(null);
                   }
                 }}
               >
@@ -228,6 +273,8 @@ export function NotificationCard({ signedIn }: { signedIn: boolean }) {
                     ? "text-success"
                     : "text-ink-mute",
               )}
+              role={tone === "error" ? "alert" : "status"}
+              aria-live="polite"
             >
               {message}
             </p>

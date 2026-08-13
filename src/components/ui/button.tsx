@@ -53,7 +53,7 @@ export const IconButton = forwardRef<
   HTMLButtonElement,
   ButtonProps & { label: string }
 >(function IconButton({ className, label, size = "md", ...props }, ref) {
-  const box = size === "sm" ? "size-9" : size === "lg" ? "size-13" : "size-11";
+  const box = size === "sm" ? "size-11" : size === "lg" ? "size-13" : "size-11";
   return (
     <Button
       ref={ref}

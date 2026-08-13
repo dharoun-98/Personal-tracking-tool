@@ -44,6 +44,10 @@ export interface AccountState {
 }
 
 export interface SyncState {
+  /** Auth account this device copy was last synced with. Prevents account mixing. */
+  ownerUserId?: string;
+  /** Local reset happened before an atomic cloud reset; never auto-push/pull. */
+  resetPending?: boolean;
   lastPushedAt?: string;
   lastPulledAt?: string;
   /**
@@ -114,6 +118,8 @@ export interface GameState {
   setHydrated: () => void;
   setAccount: (patch: Partial<AccountState>) => void;
   setSync: (patch: Partial<SyncState>) => void;
+  /** Replace per-account sync metadata after an explicit account switch. */
+  replaceSync: (next: SyncState) => void;
   bumpRevision: () => void;
   /**
    * Wholesale replacement, used only by a cloud restore.
@@ -130,9 +136,11 @@ export interface GameState {
     goals: Goal[];
     reflections: DayReflection[];
     unlocked: UnlockedAchievement[];
+    /** Clear device metadata that belongs to the world being replaced. */
+    clearDeviceMetadata?: boolean;
   }) => void;
   markReportsGenerated: () => void;
-  resetEverything: () => void;
+  resetEverything: (options?: { cloudCleared?: boolean; detachCloud?: boolean }) => void;
 }
 
 const initialAccount: AccountState = {
@@ -220,16 +228,36 @@ export const useGame = create<GameState>()(
 
       archiveQuest: (id) =>
         set((s) => ({
-          quests: s.quests.map((q) =>
-            q.id === id ? { ...q, archivedAt: new Date().toISOString() } : q,
-          ),
+          quests: s.quests.map((q) => {
+            if (q.id !== id || q.archivedAt) return q;
+            const archivedAt = new Date().toISOString();
+            const periods = q.activePeriods?.length
+              ? q.activePeriods
+              : [{ startedAt: q.createdAt }];
+            const last = periods[periods.length - 1];
+            const activePeriods = last.endedAt
+              ? periods
+              : [...periods.slice(0, -1), { ...last, endedAt: archivedAt }];
+            return { ...q, activePeriods, archivedAt };
+          }),
         })),
 
       restoreQuest: (id) =>
         set((s) => ({
-          quests: s.quests.map((q) =>
-            q.id === id ? { ...q, archivedAt: undefined } : q,
-          ),
+          quests: s.quests.map((q) => {
+            if (q.id !== id || !q.archivedAt) return q;
+            const periods = q.activePeriods?.length
+              ? q.activePeriods
+              : [{ startedAt: q.createdAt, endedAt: q.archivedAt }];
+            return {
+              ...q,
+              activePeriods: [
+                ...periods,
+                { startedAt: new Date().toISOString() },
+              ],
+              archivedAt: undefined,
+            };
+          }),
         })),
 
       addGoal: (goal) => {
@@ -282,10 +310,21 @@ export const useGame = create<GameState>()(
 
       setSync: (patch) => set((s) => ({ sync: { ...s.sync, ...patch } })),
 
+      replaceSync: (next) => set({ sync: next }),
+
       bumpRevision: () => set((s) => ({ revision: s.revision + 1 })),
 
-      replaceAll: ({ profile, onboardingComplete, quests, logs, goals, reflections, unlocked }) =>
-        set({
+      replaceAll: ({
+        profile,
+        onboardingComplete,
+        quests,
+        logs,
+        goals,
+        reflections,
+        unlocked,
+        clearDeviceMetadata,
+      }) =>
+        set((state) => ({
           profile,
           onboardingComplete,
           quests,
@@ -296,12 +335,36 @@ export const useGame = create<GameState>()(
           // The companion should react to the restored world, not carry over
           // cooldowns earned against the world it replaced.
           coachCooldowns: {},
-        }),
+          ...(clearDeviceMetadata
+            ? {
+                account: { ...state.account, email: undefined },
+                lastSeenAt: undefined,
+                previousSeenAt: undefined,
+                reportsGeneratedAt: undefined,
+              }
+            : {}),
+        })),
 
       markReportsGenerated: () =>
         set({ reportsGeneratedAt: new Date().toISOString() }),
 
-      resetEverything: () => set({ ...empty, hydrated: true, previousSeenAt: undefined }),
+      resetEverything: (options) =>
+        set((state) => {
+          const ownerUserId = state.sync.ownerUserId;
+          return {
+            ...empty,
+            sync: options?.detachCloud
+              ? {}
+              : ownerUserId
+              ? {
+                  ownerUserId,
+                  resetPending: options?.cloudCleared ? undefined : true,
+                }
+              : {},
+            hydrated: true,
+            previousSeenAt: undefined,
+          };
+        }),
     }),
     {
       name: STORAGE_KEY,

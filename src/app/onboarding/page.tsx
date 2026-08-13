@@ -1,22 +1,28 @@
-"use client";
+import { getSupabaseServer } from "@/lib/supabase/server";
+import { OnboardingEntry } from "@/components/onboarding/onboarding-entry";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useGame, useHydrated } from "@/lib/store";
-import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
-import { BootSplash } from "@/components/shell/boot-splash";
+export default async function OnboardingPage() {
+  const supabase = await getSupabaseServer();
+  if (!supabase) return <OnboardingEntry cloudWorld="signed-out" />;
 
-export default function OnboardingPage() {
-  const router = useRouter();
-  const hydrated = useHydrated();
-  const complete = useGame((s) => s.onboardingComplete);
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError) return <OnboardingEntry cloudWorld="unknown" />;
+  if (!user) return <OnboardingEntry cloudWorld="signed-out" />;
 
-  useEffect(() => {
-    if (hydrated && complete) router.replace("/dashboard");
-  }, [hydrated, complete, router]);
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("onboarding_complete")
+    .eq("id", user.id)
+    .maybeSingle();
 
-  if (!hydrated) return <BootSplash />;
-  if (complete) return <BootSplash label="Opening your world…" />;
+  if (error || !profile) return <OnboardingEntry cloudWorld="unknown" />;
 
-  return <OnboardingFlow />;
+  return (
+    <OnboardingEntry
+      cloudWorld={profile.onboarding_complete ? "returning" : "new-account"}
+    />
+  );
 }

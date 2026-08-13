@@ -148,7 +148,12 @@ export function DomainOrb({
   }
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} aria-label={meta.name}>
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={meta.name}
+        className="tappable rounded-full"
+      >
         {body}
       </button>
     );

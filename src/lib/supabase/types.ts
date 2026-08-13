@@ -81,6 +81,7 @@ export interface QuestRow {
   unit: string | null;
   source: string;
   created_at: string;
+  active_periods: Array<{ startedAt: string; endedAt?: string }> | null;
   archived_at: string | null;
   updated_at: string;
 }
@@ -137,10 +138,10 @@ export interface AdminUserOverviewRow {
   past_due_since: string | null;
   current_period_end: string | null;
   created_at: string;
+  updated_at: string;
   display_name: string | null;
   onboarding_complete: boolean | null;
   quest_count: number;
   log_count: number;
   last_active_day: string | null;
 }
-

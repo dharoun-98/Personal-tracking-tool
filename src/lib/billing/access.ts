@@ -159,7 +159,7 @@ export function evaluateAccess(
       level: "locked",
       reason: "trial-expired",
       daysLeft: 0,
-      message: "Your 16 days are up.",
+      message: "Your free trial has ended.",
       isTrial: true,
     };
   }

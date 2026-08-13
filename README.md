@@ -110,9 +110,11 @@ docs/
 
 Everything below is optional — skip it entirely and the game still works.
 
-1. **Run the migration.** Paste
-   [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql)
-   into the Supabase SQL Editor and run it once. It's idempotent.
+1. **Run the database migrations.** In the Supabase SQL Editor, run every
+   file in [`supabase/migrations`](supabase/migrations) in filename order.
+   Existing installations should also apply any newer numbered files they
+   have not run yet; they contain the latest access, reset, and history-safety
+   fixes.
 2. **Set the environment variables** from [`.env.example`](.env.example), in
    `.env.local` for development and in your Vercel project for production.
 3. **Point Supabase auth back at your site.** Authentication → URL
@@ -138,10 +140,11 @@ Use `type=magiclink` for the magic-link template, `recovery` for password
 reset, and `email_change` for email change. `/auth/callback` accepts both
 shapes, so nothing breaks while you migrate.
 
-The admin panel lives at `/command-deck` and needs `ADMIN_PASSWORD` plus an
-`ADMIN_SESSION_SECRET` of at least 24 characters. Stripe needs
-`STRIPE_SECRET_KEY`, a price id, and a webhook pointed at
-`/api/billing/webhook`.
+The admin dashboard lives at `/command-deck` and needs `ADMIN_PASSWORD` plus
+an `ADMIN_SESSION_SECRET` of at least 24 characters. “Grant free access” is an
+access override only: it does not create, cancel, or otherwise change a Stripe
+subscription. Stripe needs `STRIPE_SECRET_KEY`, a price id, and a webhook
+pointed at `/api/billing/webhook`.
 
 ---
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { getSupabaseServer } from "@/lib/supabase/server";
+import { safeInternalReturnPath } from "@/lib/safe-return";
 
 /**
  * Where Supabase sends people back after a magic link or email confirmation.
@@ -28,14 +29,16 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const params = url.searchParams;
 
-  const next = params.get("next") ?? "/dashboard";
   // Only ever redirect within our own app: an attacker-supplied `next` is a
-  // textbook open redirect otherwise.
-  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+  // textbook open redirect otherwise. In particular, URL parsers normalise
+  // backslashes into authority separators, so a simple leading-slash check is
+  // not sufficient here.
+  const safeNext = safeInternalReturnPath(params.get("next"));
 
   const fail = (reason: string, detail?: string | null) => {
     const target = new URL("/auth/sign-in", url.origin);
     target.searchParams.set("error", reason);
+    target.searchParams.set("next", safeNext);
     if (detail) target.searchParams.set("detail", detail.slice(0, 160));
     return NextResponse.redirect(target);
   };

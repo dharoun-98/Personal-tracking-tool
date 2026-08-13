@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
@@ -54,15 +54,154 @@ const STEP_ORDER: StepId[] = [
   "finale",
 ];
 
-export function OnboardingFlow() {
+const ONBOARDING_DRAFT_KEY = "lifequest.onboarding-draft.v1";
+
+interface SavedOnboardingDraft {
+  index: number;
+  draft: OnboardingDraft;
+  rejected: string[];
+}
+
+function readSavedOnboarding(): SavedOnboardingDraft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(ONBOARDING_DRAFT_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as Partial<SavedOnboardingDraft>;
+    if (!saved.draft) return null;
+    return {
+      index:
+        typeof saved.index === "number"
+          ? Math.max(0, Math.min(STEP_ORDER.length - 1, saved.index))
+          : 0,
+      draft: { ...emptyDraft(), ...saved.draft },
+      rejected: Array.isArray(saved.rejected) ? saved.rejected : [],
+    };
+  } catch {
+    try {
+      window.localStorage.removeItem(ONBOARDING_DRAFT_KEY);
+    } catch {
+      // Storage itself may be unavailable; there is nothing else to clean up.
+    }
+    return null;
+  }
+}
+
+function readInitialOnboarding(): SavedOnboardingDraft | null {
+  const saved = readSavedOnboarding();
+  if (!saved || typeof window === "undefined") return saved;
+
+  const historyIndex = window.history.state?.lifequestOnboarding
+    ? Number(window.history.state.onboardingIndex)
+    : Number.NaN;
+  if (!Number.isInteger(historyIndex)) return saved;
+
+  return {
+    ...saved,
+    index: Math.max(0, Math.min(STEP_ORDER.length - 1, historyIndex)),
+  };
+}
+
+export function OnboardingFlow({
+  showAccountEscape = true,
+}: {
+  showAccountEscape?: boolean;
+}) {
   const router = useRouter();
   const completeOnboarding = useGame((s) => s.completeOnboarding);
 
-  const [index, setIndex] = useState(0);
+  const [savedDraft] = useState(readInitialOnboarding);
+  const [index, setIndex] = useState(savedDraft?.index ?? 0);
   const [direction, setDirection] = useState(1);
-  const [draft, setDraft] = useState<OnboardingDraft>(emptyDraft);
-  const [rejected, setRejected] = useState<Set<string>>(new Set());
+  const [draft, setDraft] = useState<OnboardingDraft>(savedDraft?.draft ?? emptyDraft);
+  const [rejected, setRejected] = useState<Set<string>>(
+    () => new Set(savedDraft?.rejected ?? []),
+  );
   const [saving, setSaving] = useState(false);
+  const indexRef = useRef(index);
+  const historyReady = useRef(false);
+  const finishing = useRef(false);
+  const pendingFinish = useRef<Parameters<typeof completeOnboarding>[0] | null>(null);
+
+  useEffect(() => {
+    indexRef.current = index;
+  }, [index]);
+
+  useEffect(() => {
+    if (!historyReady.current) {
+      historyReady.current = true;
+
+      const currentState = window.history.state ?? {};
+      const existingIndex = currentState.lifequestOnboarding
+        ? Number(currentState.onboardingIndex)
+        : Number.NaN;
+
+      if (Number.isInteger(existingIndex)) {
+        // A refresh or browser Forward can remount this component on an entry we
+        // already created. Reuse that entry instead of stacking a second copy of
+        // every saved step on top of it.
+        const bounded = Math.max(0, Math.min(STEP_ORDER.length - 1, existingIndex));
+        indexRef.current = bounded;
+      } else {
+        const baseState = {
+          ...currentState,
+          lifequestOnboarding: true,
+          onboardingIndex: 0,
+        };
+        window.history.replaceState(baseState, "", window.location.href);
+
+        // A resumed draft should behave exactly like one reached step by step:
+        // each browser Back press returns to one earlier saved step.
+        for (let stepIndex = 1; stepIndex <= indexRef.current; stepIndex += 1) {
+          window.history.pushState(
+            { ...baseState, onboardingIndex: stepIndex },
+            "",
+            window.location.href,
+          );
+        }
+      }
+    }
+
+    const onPopState = (event: PopStateEvent) => {
+      if (finishing.current) {
+        const payload = pendingFinish.current;
+        if (!payload) return;
+        completeOnboarding(payload);
+        router.replace("/dashboard?welcome=1");
+        return;
+      }
+
+      const nextIndex = event.state?.lifequestOnboarding
+        ? Number(event.state.onboardingIndex)
+        : Number.NaN;
+      if (!Number.isInteger(nextIndex)) return;
+
+      const bounded = Math.max(0, Math.min(STEP_ORDER.length - 1, nextIndex));
+      setDirection(bounded < indexRef.current ? -1 : 1);
+      indexRef.current = bounded;
+      setIndex(bounded);
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+    // History is initialised exactly once. The final payload crosses the
+    // asynchronous history navigation through `pendingFinish`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const saved: SavedOnboardingDraft = {
+      index,
+      draft,
+      rejected: [...rejected],
+    };
+    try {
+      window.localStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(saved));
+    } catch {
+      // Storage-restricted browsers can still complete setup in this session;
+      // they simply cannot resume a half-finished draft after closing it.
+    }
+  }, [draft, index, rejected]);
 
   const step = STEP_ORDER[index];
   const patch = (p: Partial<OnboardingDraft>) => setDraft((d) => ({ ...d, ...p }));
@@ -88,18 +227,53 @@ export function OnboardingFlow() {
   };
 
   const go = (delta: number) => {
+    if (delta < 0 && index > 0 && historyReady.current) {
+      window.history.back();
+      return;
+    }
+
+    const nextIndex = Math.max(0, Math.min(STEP_ORDER.length - 1, index + delta));
+    if (delta > 0 && nextIndex !== index && historyReady.current) {
+      window.history.pushState(
+        {
+          ...(window.history.state ?? {}),
+          lifequestOnboarding: true,
+          onboardingIndex: nextIndex,
+        },
+        "",
+        window.location.href,
+      );
+    }
     setDirection(delta);
-    setIndex((i) => Math.max(0, Math.min(STEP_ORDER.length - 1, i + delta)));
+    indexRef.current = nextIndex;
+    setIndex(nextIndex);
   };
 
   const finish = () => {
     setSaving(true);
-    completeOnboarding({
+    const payload: Parameters<typeof completeOnboarding>[0] = {
       profile: draftToProfile(draft),
       quests: accepted.map(ideaToQuest),
       goals: generateStarterGoals(draft),
-    });
-    router.push("/dashboard?welcome=1");
+    };
+    try {
+      window.localStorage.removeItem(ONBOARDING_DRAFT_KEY);
+    } catch {
+      // Non-fatal for the same reason as draft persistence above.
+    }
+
+    if (historyReady.current && index > 0) {
+      // Return to the route's base entry, then push the dashboard. That drops
+      // the wizard's intermediate history entries so Back after completion
+      // does not make the player walk through setup in reverse.
+      pendingFinish.current = payload;
+      finishing.current = true;
+      window.history.go(-index);
+      return;
+    }
+
+    completeOnboarding(payload);
+    router.replace("/dashboard?welcome=1");
   };
 
   const progress = index / (STEP_ORDER.length - 1);
@@ -119,15 +293,10 @@ export function OnboardingFlow() {
           <p className="text-2xs tracking-[0.14em] text-ink-faint uppercase">
             Step {index + 1} of {STEP_ORDER.length}
           </p>
-          {/*
-            An escape hatch for anyone who already has an account and has
-            landed here on a new device. Without it, the only way to reach the
-            restore is to complete an onboarding they have already done once.
-          */}
-          {index === 0 && (
+          {showAccountEscape && (
             <Link
-              href="/auth/sign-in"
-              className="text-2xs font-semibold text-violet-soft underline underline-offset-2"
+              href="/auth/sign-in?next=%2Fdashboard"
+              className="tappable inline-flex min-h-11 items-center text-xs font-semibold text-violet-soft underline underline-offset-2"
             >
               I already have an account
             </Link>
@@ -148,7 +317,11 @@ export function OnboardingFlow() {
           >
             {step === "intro" && <IntroStep />}
             {step === "name" && (
-              <NameStep value={draft.displayName} onChange={(v) => patch({ displayName: v })} />
+              <NameStep
+                value={draft.displayName}
+                onChange={(v) => patch({ displayName: v })}
+                onContinue={() => canAdvance() && go(1)}
+              />
             )}
             {step === "baselines" && (
               <BaselinesStep
@@ -222,7 +395,7 @@ export function OnboardingFlow() {
       </div>
 
       {/* Navigation */}
-      <div className="sticky bottom-0 flex items-center gap-3 bg-linear-to-t from-page via-page/95 to-transparent pt-6 pb-6 pad-safe-bottom">
+      <div className="sticky bottom-0 z-30 -mx-5 flex items-center gap-3 border-t border-hairline/60 bg-page/95 px-5 pt-3 pb-[calc(1rem+var(--safe-bottom))] backdrop-blur-xl">
         {index > 0 && (
           <Button variant="ghost" size="lg" onClick={() => go(-1)} aria-label="Back">
             <ArrowLeft className="size-4" />
@@ -282,7 +455,15 @@ function IntroStep() {
   );
 }
 
-function NameStep({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function NameStep({
+  value,
+  onChange,
+  onContinue,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onContinue: () => void;
+}) {
   return (
     <div>
       <StepHeader
@@ -290,11 +471,15 @@ function NameStep({ value, onChange }: { value: string; onChange: (v: string) =>
         subtitle="Your companion will use this. First name is plenty."
       />
       <input
+        aria-label="Your name"
         autoFocus
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Your name"
         maxLength={40}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && value.trim()) onContinue();
+        }}
         className="w-full rounded-2xl border border-edge bg-surface px-5 py-4 text-lg outline-none placeholder:text-ink-faint focus:border-violet focus:ring-2 focus:ring-violet/25"
       />
     </div>
@@ -336,7 +521,9 @@ function BaselinesStep({
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold">{domain.name}</p>
-                <p className="truncate text-2xs text-ink-faint">{domain.baselineQuestion}</p>
+                <p className="mt-0.5 text-xs leading-snug text-ink-mute">
+                  {domain.baselineQuestion}
+                </p>
               </div>
               <div className="text-right">
                 <p className="text-lg leading-none font-bold tabular-nums accent-text">
@@ -383,6 +570,7 @@ function PrioritiesStep({
             <button
               key={domain.id}
               type="button"
+              aria-pressed={active}
               onClick={() => onToggle(domain.id)}
               disabled={disabled}
               style={{
@@ -468,6 +656,7 @@ function VisionsStep({
               </div>
               <p className="mb-3 text-xs leading-relaxed text-ink-mute">{domain.visionPrompt}</p>
               <textarea
+                aria-label={`${domain.name}: what winning looks like`}
                 value={visions[id] ?? ""}
                 onChange={(e) => onChange(id, e.target.value)}
                 rows={3}
@@ -500,6 +689,7 @@ function TimeStep({ value, onChange }: { value: number; onChange: (v: number) =>
             <button
               key={option.minutes}
               type="button"
+              aria-pressed={active}
               onClick={() => onChange(option.minutes)}
               className={cn(
                 "tappable flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all",
@@ -548,6 +738,8 @@ function StyleStep({
             <button
               key={style.id}
               type="button"
+              aria-pressed={active}
+              aria-label={`${style.name}: ${style.blurb}`}
               onClick={() => onChange(style.id)}
               className={cn(
                 "tappable w-full rounded-2xl border p-4 text-left transition-all",
@@ -588,7 +780,7 @@ function RhythmStep({
     <div>
       <StepHeader
         title="When should we check in?"
-        subtitle="This sets when reminders arrive. Nothing here is pushy — one gentle nudge at most."
+        subtitle="Choose your preferred check-in time. You can turn on optional notifications later — one gentle nudge at most."
       />
       <div className="grid grid-cols-2 gap-3">
         {RHYTHMS.map((rhythm) => {
@@ -597,6 +789,8 @@ function RhythmStep({
             <button
               key={rhythm.id}
               type="button"
+              aria-pressed={active}
+              aria-label={`${rhythm.name}: ${rhythm.blurb}`}
               onClick={() => onChange(rhythm.id)}
               className={cn(
                 "tappable rounded-2xl border p-4 text-left transition-all",
@@ -642,6 +836,7 @@ function PromiseStep({
           In {horizon} months, I will have…
         </p>
         <textarea
+          aria-label="Promise to your future self"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={5}
@@ -656,9 +851,10 @@ function PromiseStep({
               <button
                 key={months}
                 type="button"
+                aria-pressed={horizon === months}
                 onClick={() => onHorizon(months)}
                 className={cn(
-                  "tappable flex-1 rounded-xl border py-2.5 text-xs font-semibold transition-all",
+                  "tappable min-h-11 flex-1 rounded-xl border py-2.5 text-xs font-semibold transition-all",
                   horizon === months
                     ? "border-gold bg-gold/12 text-gold-ink"
                     : "border-edge bg-surface text-ink-mute",
@@ -701,6 +897,7 @@ function QuestsStep({
             <button
               key={idea.id}
               type="button"
+              aria-pressed={!off}
               onClick={() => onToggle(idea.id)}
               style={{
                 ["--accent" as string]: domain.color,
@@ -791,7 +988,7 @@ function FinaleStep({ draft, questCount }: { draft: OnboardingDraft; questCount:
 
       <div className="panel mt-7 rounded-2xl p-4 text-left">
         <p className="mb-1 text-2xs tracking-wide text-ink-faint uppercase">
-          Two documents are being prepared
+          Two documents will be available
         </p>
         <ul className="mt-3 space-y-2 text-xs text-ink-dim">
           <li className="flex gap-2.5">

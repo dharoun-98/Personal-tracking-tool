@@ -19,9 +19,9 @@ import type { DomainId } from "@/lib/types";
 /* ==================================================================== *
  * "Your Starting Report"
  *
- * A record of day one. Its whole value is that it is fixed in time — this is
- * why baselines are never editable after onboarding. In three months the
- * player should be able to open this and see, honestly, where they began.
+ * Day-one baseline scores paired with the player's current quests, goals and
+ * focus. Baselines remain stable after onboarding; the surrounding plan is
+ * intentionally regenerated from the latest local state on every download.
  * ==================================================================== */
 
 const s = StyleSheet.create({
@@ -213,7 +213,7 @@ export function StartingReport({ data }: { data: DocumentData }) {
     <Document
       title={`Lifequest — Starting Report — ${name}`}
       author="Lifequest"
-      subject="Where you stood on day one"
+      subject="Day-one baselines and current Lifequest plan"
       creator="Lifequest"
       producer="Lifequest"
     >
@@ -226,8 +226,8 @@ export function StartingReport({ data }: { data: DocumentData }) {
         <Text style={s.dateline}>Begun {formatDate(startedAt)}</Text>
 
         <Text style={s.lede}>
-          This is where you stood on day one — in your own words, by your own
-          reckoning. Nothing here changes. That is the point of it.
+          Your baseline scores record where you began. The setup, goals and
+          board in this copy reflect what was saved on {formatDate(generatedAt)}.
         </Text>
 
         {/* The seven, as a constellation strip */}
@@ -282,7 +282,7 @@ export function StartingReport({ data }: { data: DocumentData }) {
         </View>
 
         <View style={s.section}>
-          <Text style={s.sectionLabel}>HOW YOU SET IT UP</Text>
+          <Text style={s.sectionLabel}>IN THIS COPY</Text>
           <View style={s.setupGrid}>
             <View style={s.setupCell}>
               <Text style={s.setupKey}>FOCUS</Text>
@@ -305,7 +305,7 @@ export function StartingReport({ data }: { data: DocumentData }) {
               <Text style={s.setupValue}>{rhythm}</Text>
             </View>
             <View style={s.setupCell}>
-              <Text style={s.setupKey}>STARTING QUESTS</Text>
+              <Text style={s.setupKey}>ACTIVE QUESTS</Text>
               <Text style={s.setupValue}>{activeQuests.length}</Text>
             </View>
             <View style={s.setupCell}>
@@ -375,16 +375,16 @@ export function StartingReport({ data }: { data: DocumentData }) {
       {/* ------------------------------------------------- Page 3 */}
       <Page size="A4" style={s.page}>
         <Text style={s.sectionLabel}>SECTION TWO</Text>
-        <Text style={s.h2}>Your starting board</Text>
+        <Text style={s.h2}>Your current board</Text>
         <Text style={s.intro}>
-          Built to fit {profile.dailyMinutes} minutes a day — the time you said you
-          actually have, not the time you wish you had.
+          Your active quests when this copy was generated, planned around a
+          {` ${profile.dailyMinutes}`}-minute day.
         </Text>
 
         {focus.length === 0 && activeQuests.length === 0 ? (
           <Text style={s.cardBody}>
-            You began with an empty board. That is a legitimate way to start: add
-            the first quest when you know what it should be.
+            Your board is currently empty. That is a legitimate choice: add the
+            next quest when you know what it should be.
           </Text>
         ) : (
           DOMAINS.filter((d) => activeQuests.some((q) => q.domain === d.id)).map(
@@ -420,7 +420,7 @@ export function StartingReport({ data }: { data: DocumentData }) {
 
         {goals.length > 0 && (
           <View style={s.section}>
-            <Text style={s.sectionLabel}>WHAT WINNING LOOKS LIKE</Text>
+            <Text style={s.sectionLabel}>CURRENT GOALS</Text>
             {goals.map((goal) => {
               const print = DOMAIN_PRINT[goal.domain];
               return (
@@ -495,7 +495,6 @@ export function StartingReport({ data }: { data: DocumentData }) {
         <View style={[s.rule, { marginTop: SPACE.section }]} />
         <Text style={[s.cardBody, { fontFamily: TYPE.serifItalic, fontSize: 11 }]}>
           Generated {formatDate(generatedAt)} from data held on your own device.
-          Nothing in this document has been sent anywhere.
         </Text>
 
         <Footer name={name} />

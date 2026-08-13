@@ -5,7 +5,7 @@ import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 import { ArrowLeft, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { DOMAIN_IDS, getDomain } from "@/lib/domains";
-import { buildToday } from "@/lib/game";
+import { buildToday, completionCredit } from "@/lib/game";
 import { dayRange } from "@/lib/date";
 import { compactNumber } from "@/lib/format";
 import { useSnapshot } from "@/lib/selectors";
@@ -16,6 +16,7 @@ import { XpBar } from "@/components/ui/xp-bar";
 import { buttonClasses } from "@/components/ui/button";
 import { DomainOrb } from "@/components/game/domain-orb";
 import { QuestCard } from "@/components/game/quest-card";
+import { QuestManagement } from "@/components/game/quest-management";
 import { StreakFlame } from "@/components/game/streak-flame";
 import { DayHeatmap, type HeatCell } from "@/components/game/day-heatmap";
 import type { DomainId } from "@/lib/types";
@@ -39,8 +40,11 @@ export default function DomainPage() {
         (t) => t.quest.domain === domainId && (t.due || t.log),
       );
       if (view.length === 0) return { date, value: null };
-      const done = view.filter((t) => t.log && t.log.status !== "skipped").length;
-      return { date, value: done / view.length };
+      const credit = view.reduce(
+        (sum, item) => sum + completionCredit(item.log?.status),
+        0,
+      );
+      return { date, value: credit / view.length };
     });
   }, [quests, logs, domainId, valid]);
 
@@ -51,10 +55,13 @@ export default function DomainPage() {
   const todayItems = snapshot.today.filter(
     (t) => t.quest.domain === domainId && t.due,
   );
-  const domainQuests = quests.filter((q) => q.domain === domainId && !q.archivedAt);
+  const allDomainQuests = quests.filter((q) => q.domain === domainId);
+  const domainQuests = allDomainQuests.filter((q) => !q.archivedAt);
   const domainGoals = goals.filter((g) => g.domain === domainId && !g.completedAt);
   const vision = profile?.visions?.[domainId];
   const trendUp = state.trend >= 0;
+  const returnTo = `/domains/${domainId}`;
+  const addQuestHref = `/quests/new?domain=${domainId}&returnTo=${encodeURIComponent(returnTo)}`;
 
   return (
     <main
@@ -66,7 +73,7 @@ export default function DomainPage() {
     >
       <Link
         href="/map"
-        className="tappable inline-flex items-center gap-1.5 text-xs text-ink-mute transition-colors hover:text-ink"
+        className="tappable inline-flex min-h-11 items-center gap-1.5 text-xs text-ink-mute transition-colors hover:text-ink"
       >
         <ArrowLeft className="size-3.5" />
         Constellation
@@ -134,8 +141,8 @@ export default function DomainPage() {
         <SectionTitle
           action={
             <Link
-              href={`/quests/new?domain=${domainId}`}
-              className="tappable inline-flex items-center gap-1 text-2xs font-semibold accent-text"
+              href={addQuestHref}
+              className="tappable inline-flex min-h-11 min-w-11 items-center justify-center gap-1 text-2xs font-semibold accent-text"
             >
               <Plus className="size-3.5" />
               Add
@@ -155,7 +162,7 @@ export default function DomainPage() {
             </p>
             {domainQuests.length === 0 && (
               <Link
-                href={`/quests/new?domain=${domainId}`}
+                href={addQuestHref}
                 className={buttonClasses({
                   variant: "accent",
                   size: "sm",
@@ -183,13 +190,13 @@ export default function DomainPage() {
       </section>
 
       {/* -------------------------------------------------------- Heatmap */}
-      {domainQuests.length > 0 && (
+      {allDomainQuests.length > 0 && (
         <section>
           <SectionTitle>Last four weeks</SectionTitle>
           <Panel className="p-4">
             <DayHeatmap cells={heatCells} color={meta.color} />
             <p className="mt-3 text-2xs text-ink-faint">
-              Filled squares are days you showed up. Dashed ones had nothing scheduled.
+              Partial check-ins count as half. Dashed squares had nothing scheduled.
             </p>
           </Panel>
         </section>
@@ -212,26 +219,11 @@ export default function DomainPage() {
         </section>
       )}
 
-      {/* ------------------------------------------------------ All quests */}
-      {domainQuests.length > 0 && (
+      {/* --------------------------------------------------- Quest management */}
+      {allDomainQuests.length > 0 && (
         <section>
-          <SectionTitle>All quests here</SectionTitle>
-          <Panel className="divide-y divide-hairline/60">
-            {domainQuests.map((quest) => (
-              <div key={quest.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm">{quest.title}</span>
-                </span>
-                <span className="shrink-0 text-2xs text-ink-faint">
-                  {quest.difficulty === 1
-                    ? "Light"
-                    : quest.difficulty === 2
-                      ? "Solid"
-                      : "Heavy"}
-                </span>
-              </div>
-            ))}
-          </Panel>
+          <SectionTitle>Your quests</SectionTitle>
+          <QuestManagement quests={allDomainQuests} />
         </section>
       )}
     </main>

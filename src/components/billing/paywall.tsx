@@ -2,16 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { CreditCard, LogOut, Sparkles } from "lucide-react";
+import { CreditCard, ExternalLink, LogOut, UserRoundPlus } from "lucide-react";
 import { DOMAINS } from "@/lib/domains";
 import type { AccessState } from "@/lib/billing/access";
 import { useSnapshot } from "@/lib/selectors";
 import { useGame } from "@/lib/store";
 import { compactNumber } from "@/lib/format";
+import { safeInternalReturnPath } from "@/lib/safe-return";
 import { Panel } from "@/components/ui/panel";
-import { Button } from "@/components/ui/button";
+import { Button, buttonClasses } from "@/components/ui/button";
+import { DataExportCard } from "@/components/account/data-export-card";
+import { DocumentCard } from "@/components/documents/document-card";
 import { DomainIcon } from "@/components/game/domain-icon";
+import { formatPlanPrice, usePlanPrice } from "@/components/billing/plan-price";
 
 /* ==================================================================== *
  * The lock screen.
@@ -31,9 +36,9 @@ const COPY: Record<
   { title: string; body: string; cta: string }
 > = {
   "trial-expired": {
-    title: "That's sixteen days.",
+    title: "Your free trial has ended.",
     body: "Your orbs are exactly where you left them, and they'll stay there. Add a card whenever you want to pick the game back up.",
-    cta: "Continue playing",
+    cta: "Choose a plan",
   },
   "payment-failed-final": {
     title: "Your card said no.",
@@ -43,7 +48,7 @@ const COPY: Record<
   cancelled: {
     title: "Your subscription ended.",
     body: "Everything you built is still here, waiting. Start it up again whenever it's the right time.",
-    cta: "Start again",
+    cta: "Restart subscription",
   },
   // The rest never reach a locked state; present for exhaustiveness.
   trialing: { title: "", body: "", cta: "" },
@@ -55,16 +60,18 @@ const COPY: Record<
   unknown: {
     title: "Time to sort out billing.",
     body: "Add a payment method to keep playing.",
-    cta: "Continue playing",
+    cta: "Set up subscription",
   },
 };
 
 export function Paywall({
   state,
   signedIn,
+  hasStripeCustomer,
 }: {
   state: AccessState;
   signedIn: boolean;
+  hasStripeCustomer: boolean;
 }) {
   const { domains, level, streak, totalXp } = useSnapshot();
   const profile = useGame((s) => s.profile);
@@ -72,20 +79,36 @@ export function Paywall({
   const [error, setError] = useState<string | null>(null);
 
   const copy = COPY[state.reason] ?? COPY.unknown;
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams.toString();
+  const returnPath = safeInternalReturnPath(search ? `${pathname}?${search}` : pathname);
+  const nextParam = encodeURIComponent(returnPath);
   const first = profile?.displayName.split(" ")[0];
   const lit = DOMAINS.filter((d) => domains[d.id].questCount > 0);
+  const body = signedIn
+    ? copy.body
+    : "Your orbs are exactly where you left them. Connect this world to an account whenever you want to pick the game back up.";
 
-  const startCheckout = async () => {
+  const billingAction =
+    state.reason === "payment-failed-final" && hasStripeCustomer ? "portal" : "checkout";
+  const planPrice = usePlanPrice(!signedIn || billingAction === "checkout");
+  const planPriceLabel = formatPlanPrice(planPrice);
+
+  const startBilling = async () => {
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch("/api/billing/checkout", { method: "POST" });
+      const response = await fetch(`/api/billing/${billingAction}`, { method: "POST" });
       const result = await response.json().catch(() => ({}));
       if (result.url) {
         window.location.href = result.url;
         return;
       }
-      setError(result.message ?? "Couldn't open checkout. Try again shortly.");
+      setError(
+        result.message ??
+          `Couldn't open ${billingAction === "portal" ? "billing" : "checkout"}. Try again shortly.`,
+      );
     } catch {
       setError("Couldn't reach the payment provider. Try again shortly.");
     } finally {
@@ -94,7 +117,7 @@ export function Paywall({
   };
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center px-5 py-12 pad-safe-top">
+    <main className="mx-auto flex min-h-[calc(100dvh-3.5rem-var(--safe-top))] w-full max-w-lg flex-col justify-center px-5 py-12 md:min-h-dvh">
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
@@ -125,7 +148,7 @@ export function Paywall({
         </h1>
         <p className="mx-auto mt-3 max-w-sm text-center text-sm leading-relaxed text-ink-mute text-pretty">
           {first ? `${first}, ` : ""}
-          {copy.body}
+          {body}
         </p>
 
         {/* Proof that nothing is lost. */}
@@ -141,41 +164,104 @@ export function Paywall({
         </Panel>
 
         <div className="mt-6 space-y-2.5">
-          <Button size="lg" variant="gold" fullWidth loading={busy} onClick={startCheckout}>
-            {!busy && <CreditCard className="size-4" />}
-            {copy.cta}
-          </Button>
+          {signedIn ? (
+            <div>
+              {billingAction === "checkout" && (
+                <p className="mb-2.5 text-center text-xs text-ink-mute">
+                  {planPriceLabel
+                    ? `${planPriceLabel}. You'll review the plan in Stripe before confirming.`
+                    : "Price and billing cadence are shown in Stripe before you confirm."}
+                </p>
+              )}
+              <Button size="lg" variant="gold" fullWidth loading={busy} onClick={startBilling}>
+                {!busy &&
+                  (billingAction === "portal" ? (
+                    <ExternalLink className="size-4" aria-hidden />
+                  ) : (
+                    <CreditCard className="size-4" aria-hidden />
+                  ))}
+                {copy.cta}
+              </Button>
+            </div>
+          ) : (
+            <Panel className="p-4">
+              <div className="flex items-start gap-3">
+                <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-violet/15 text-violet-soft">
+                  <UserRoundPlus className="size-4.5" aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">Connect this world first</p>
+                  <p className="mt-1 text-xs leading-relaxed text-ink-mute">
+                    A subscription needs an account to belong to. Create one to
+                    protect this world, or sign in if it is already backed up.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                <Link
+                  href={`/auth/sign-up?next=${nextParam}`}
+                  className={buttonClasses({ variant: "gold", size: "md", fullWidth: true })}
+                >
+                  Create an account
+                </Link>
+                <Link
+                  href={`/auth/sign-in?next=${nextParam}`}
+                  className={buttonClasses({ variant: "secondary", size: "md", fullWidth: true })}
+                >
+                  Sign in
+                </Link>
+              </div>
+              <p className="mt-3 text-2xs leading-relaxed text-ink-faint">
+                {planPriceLabel
+                  ? `Current plan: ${planPriceLabel}. You'll review it again before confirming.`
+                  : "Price and billing cadence are shown before you confirm anything."}
+              </p>
+            </Panel>
+          )}
 
           {error && (
-            <p className="rounded-xl bg-warn/12 px-3.5 py-2.5 text-center text-xs text-warn">
+            <p
+              className="rounded-xl bg-warn/12 px-3.5 py-2.5 text-center text-xs text-warn"
+              role="alert"
+            >
               {error}
             </p>
           )}
 
-          <Link
-            href="/account"
-            className="tappable flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-xs font-semibold text-ink-mute transition-colors hover:text-ink"
-          >
-            <Sparkles className="size-3.5" />
-            Download your report and promise letter
-          </Link>
-
           {signedIn && (
             <form action="/auth/sign-out" method="post">
-              <button
+              <Button
                 type="submit"
-                className="tappable flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-xs font-medium text-ink-faint transition-colors hover:text-ink-mute"
+                variant="ghost"
+                fullWidth
               >
-                <LogOut className="size-3.5" />
+                <LogOut className="size-3.5" aria-hidden />
                 Sign out
-              </button>
+              </Button>
             </form>
           )}
         </div>
 
+        <section className="mt-9" aria-labelledby="paywall-downloads-title">
+          <h2
+            id="paywall-downloads-title"
+            className="text-center font-display text-xl font-bold"
+          >
+            Your data is still yours
+          </h2>
+          <p className="mx-auto mt-2 mb-4 max-w-sm text-center text-xs leading-relaxed text-ink-mute">
+            These downloads are available without subscribing. PDFs are built
+            on this device, and the JSON file contains the complete local copy.
+          </p>
+          <div className="space-y-2.5">
+            <DocumentCard kind="report" />
+            <DocumentCard kind="promise" />
+            <DataExportCard />
+          </div>
+        </section>
+
         <p className="mt-6 text-center text-2xs leading-relaxed text-ink-faint">
-          Your data stays on this device either way. Cancel any time, and take
-          your documents with you.
+          Cancel any time. Your on-device data and these export tools remain available.
         </p>
       </motion.div>
     </main>

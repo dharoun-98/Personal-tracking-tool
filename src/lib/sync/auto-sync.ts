@@ -39,9 +39,27 @@ export type ReconcileResult =
 const PUSH_DEBOUNCE_MS = 2500;
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
-let pushInFlight: Promise<unknown> | null = null;
+let pushInFlight: Promise<ReconcileResult> | null = null;
+let reconcileInFlight: Promise<ReconcileResult> | null = null;
+let publishAutoResult: ((result: ReconcileResult) => void) | null = null;
+/**
+ * Automatic writes stay closed until a remote inspection has completed and
+ * positively established that there is no unresolved divergence.
+ *
+ * Explicit conflict choices call `pushSnapshot` / `pullSnapshot` directly;
+ * they do not need this gate. The gate only protects background writes.
+ */
+let autoPushEnabled = false;
 /** Everything the current watcher needs to undo. */
 let teardown: Array<() => void> = [];
+
+export function setAutoPushEnabled(enabled: boolean): void {
+  autoPushEnabled = enabled;
+  if (!enabled && pushTimer) {
+    clearTimeout(pushTimer);
+    pushTimer = null;
+  }
+}
 
 /** True when this device holds edits the server hasn't received. */
 export function hasUnpushedChanges(): boolean {
@@ -54,49 +72,95 @@ export function hasUnpushedChanges(): boolean {
  *
  * Called on sign-in, on app open, and when a tab regains focus.
  */
-export async function reconcile(): Promise<ReconcileResult> {
-  const remote = await describeRemote();
-  // Not signed in, or cloud isn't configured. Local-only is a valid way to
-  // use this app, not an error.
-  if (!remote) return { kind: "unavailable" };
+async function reconcileOnce(): Promise<ReconcileResult> {
+  setAutoPushEnabled(false);
+  try {
+    if (useGame.getState().sync.resetPending) {
+      return {
+        kind: "failed",
+        message:
+          "Cloud sync is paused until this signed-in reset is completed safely.",
+      };
+    }
+    const remote = await describeRemote();
+    // Not signed in, or cloud isn't configured. Local-only is a valid way to
+    // use this app, not an error.
+    if (!remote) return { kind: "unavailable" };
 
-  const local = localHasData();
-  const dirty = hasUnpushedChanges();
-  const { sync } = useGame.getState();
+    const local = localHasData();
+    const dirty = hasUnpushedChanges();
+    const { sync } = useGame.getState();
 
-  const serverMoved =
-    !!remote.stamp && (!sync.serverStamp || remote.stamp > sync.serverStamp);
+    const serverMoved = remote.hasData &&
+      (!remote.stamp || !sync.serverStamp || remote.stamp > sync.serverStamp);
 
-  // Fresh device, or a cloud account with nothing in it yet.
-  if (!remote.hasData) {
-    if (!local) return { kind: "idle" };
-    const result = await pushSnapshot();
-    return result.ok ? { kind: "pushed" } : { kind: "failed", message: result.message };
+    let result: ReconcileResult;
+
+    // Fresh device, or a cloud account with nothing in it yet.
+    if (!remote.hasData) {
+      if (!local) result = { kind: "idle" };
+      else {
+        const pushed = await pushSnapshot(remote.userId);
+        result = pushed.ok
+          ? { kind: "pushed" }
+          : { kind: "failed", message: pushed.message };
+      }
+    } else if (!local) {
+      const pulled = await pullSnapshot(remote.userId);
+      result = pulled.ok
+        ? { kind: "pulled" }
+        : { kind: "failed", message: pulled.message };
+    } else if (dirty && serverMoved) {
+      // Both sides changed. Only the player's explicit choice may open writes.
+      result = { kind: "conflict" };
+    } else if (dirty) {
+      const pushed = await pushSnapshot(remote.userId);
+      result = pushed.ok
+        ? { kind: "pushed" }
+        : { kind: "failed", message: pushed.message };
+    } else if (serverMoved) {
+      const pulled = await pullSnapshot(remote.userId);
+      result = pulled.ok
+        ? { kind: "pulled" }
+        : { kind: "failed", message: pulled.message };
+    } else {
+      result = { kind: "idle" };
+    }
+
+    if (result.kind === "idle" || result.kind === "pushed" || result.kind === "pulled") {
+      setAutoPushEnabled(true);
+    }
+    return result;
+  } catch (error) {
+    setAutoPushEnabled(false);
+    return {
+      kind: "failed",
+      message:
+        error instanceof Error
+          ? error.message
+          : error &&
+              typeof error === "object" &&
+              "message" in error &&
+              typeof error.message === "string"
+            ? error.message
+            : "Sync failed.",
+    };
   }
+}
 
-  if (!local) {
-    const result = await pullSnapshot();
-    return result.ok ? { kind: "pulled" } : { kind: "failed", message: result.message };
-  }
-
-  // Both sides hold something.
-  if (dirty && serverMoved) return { kind: "conflict" };
-
-  if (dirty) {
-    const result = await pushSnapshot();
-    return result.ok ? { kind: "pushed" } : { kind: "failed", message: result.message };
-  }
-
-  if (serverMoved) {
-    const result = await pullSnapshot();
-    return result.ok ? { kind: "pulled" } : { kind: "failed", message: result.message };
-  }
-
-  return { kind: "idle" };
+/** Coalesce focus, startup and auto-save inspections into one remote decision. */
+export function reconcile(): Promise<ReconcileResult> {
+  if (reconcileInFlight) return reconcileInFlight;
+  const task = reconcileOnce().finally(() => {
+    if (reconcileInFlight === task) reconcileInFlight = null;
+  });
+  reconcileInFlight = task;
+  return task;
 }
 
 /** Pushes now, coalescing with anything already in flight. */
 export async function flushPush(): Promise<void> {
+  if (!autoPushEnabled) return;
   if (pushTimer) {
     clearTimeout(pushTimer);
     pushTimer = null;
@@ -105,14 +169,22 @@ export async function flushPush(): Promise<void> {
   if (pushInFlight) {
     await pushInFlight;
     if (!hasUnpushedChanges()) return;
+    if (!autoPushEnabled) return;
   }
-  pushInFlight = pushSnapshot().finally(() => {
-    pushInFlight = null;
+  // Re-inspect immediately before every automatic write. Another device may
+  // have changed the cloud since this tab last gained focus.
+  const task = reconcile();
+  const publish = publishAutoResult;
+  const pending = task.finally(() => {
+    if (pushInFlight === pending) pushInFlight = null;
   });
-  await pushInFlight;
+  pushInFlight = pending;
+  const result = await pending;
+  publish?.(result);
 }
 
 function schedulePush() {
+  if (!autoPushEnabled) return;
   if (pushTimer) clearTimeout(pushTimer);
   // Debounced so tapping through five quests is one request, not five.
   pushTimer = setTimeout(() => {
@@ -127,12 +199,22 @@ function schedulePush() {
  * Returns a teardown function. Safe to call more than once — the previous
  * watcher is replaced rather than stacked.
  */
-export function startAutoSync(): () => void {
+export function startAutoSync(
+  onResult?: (result: ReconcileResult) => void,
+): () => void {
   stopAutoSync();
+  publishAutoResult = onResult ?? null;
 
   const unsubscribe = useGame.subscribe((state, previous) => {
     // A pull is writing the server's own data in; that isn't a local edit.
     if (isApplyingRemote()) return;
+    if (state.sync.resetPending) {
+      // A legacy/direct signed-in reset must never become an implicit cloud
+      // deletion. The UI can complete it through `clearCloudSnapshot`, then
+      // call `resetEverything({ cloudCleared: true })`.
+      setAutoPushEnabled(false);
+      return;
+    }
 
     const changed =
       state.quests !== previous.quests ||
@@ -153,23 +235,29 @@ export function startAutoSync(): () => void {
     // Closing the tab or backgrounding the app is the last chance to save.
     if (document.visibilityState === "hidden") void flushPush();
   };
-  const onOnline = () => void flushPush();
+  const onOnline = () => {
+    const publish = publishAutoResult;
+    void reconcile().then((result) => publish?.(result));
+  };
+  const onPageHide = () => void flushPush();
 
   document.addEventListener("visibilitychange", onHidden);
   window.addEventListener("online", onOnline);
-  window.addEventListener("pagehide", onOnline);
+  window.addEventListener("pagehide", onPageHide);
 
   teardown = [
     unsubscribe,
     () => document.removeEventListener("visibilitychange", onHidden),
     () => window.removeEventListener("online", onOnline),
-    () => window.removeEventListener("pagehide", onOnline),
+    () => window.removeEventListener("pagehide", onPageHide),
   ];
 
   return stopAutoSync;
 }
 
 export function stopAutoSync(): void {
+  setAutoPushEnabled(false);
+  publishAutoResult = null;
   if (pushTimer) {
     clearTimeout(pushTimer);
     pushTimer = null;

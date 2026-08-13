@@ -1,21 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { CircleUser, Orbit, Sparkles, Swords } from "lucide-react";
+import { CircleUser, CloudAlert, LogIn, Orbit, Sparkles, Swords } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { safeInternalReturnPath } from "@/lib/safe-return";
+import { useSyncStatus } from "@/components/shell/sync-manager";
 
 const ITEMS = [
-  { href: "/dashboard", label: "Today", icon: Swords },
-  { href: "/map", label: "Map", icon: Orbit },
-  { href: "/journey", label: "Journey", icon: Sparkles },
-  { href: "/profile", label: "You", icon: CircleUser },
+  { href: "/dashboard", label: "Today", icon: Swords, matches: ["/dashboard", "/quests"] },
+  { href: "/map", label: "Map", icon: Orbit, matches: ["/map", "/domains"] },
+  { href: "/journey", label: "Journey", icon: Sparkles, matches: ["/journey"] },
+  { href: "/profile", label: "You", icon: CircleUser, matches: ["/profile", "/account", "/settings"] },
 ] as const;
 
-function useActive(href: string) {
+function useActive(matches: readonly string[]) {
   const pathname = usePathname();
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return matches.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 /* -------------------------------------------------------------------- *
@@ -41,12 +43,14 @@ function NavTab({
   href,
   label,
   icon: Icon,
+  matches,
 }: {
   href: string;
   label: string;
   icon: typeof Swords;
+  matches: readonly string[];
 }) {
-  const active = useActive(href);
+  const active = useActive(matches);
   return (
     <li className="flex-1">
       <Link
@@ -117,12 +121,14 @@ function RailItem({
   href,
   label,
   icon: Icon,
+  matches,
 }: {
   href: string;
   label: string;
   icon: typeof Swords;
+  matches: readonly string[];
 }) {
-  const active = useActive(href);
+  const active = useActive(matches);
   return (
     <li>
       <Link
@@ -147,5 +153,89 @@ function RailItem({
         {label}
       </Link>
     </li>
+  );
+}
+
+/** Persistent identity affordance used on every in-game screen. */
+export function AppHeader({
+  signedIn,
+  email,
+  identityUnknown = false,
+}: {
+  signedIn: boolean;
+  email: string | null;
+  identityUnknown?: boolean;
+}) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const phase = useSyncStatus((state) => state.phase);
+  const syncNeedsAttention =
+    signedIn && ["conflict", "error", "offline", "account-change"].includes(phase);
+  const search = searchParams.toString();
+  const returnPath = safeInternalReturnPath(search ? `${pathname}?${search}` : pathname);
+  const signInHref = `/auth/sign-in?next=${encodeURIComponent(returnPath)}`;
+  const initial = (email?.trim()[0] ?? "A").toUpperCase();
+
+  return (
+    <header className="sticky top-0 z-30 flex h-[calc(3.5rem+var(--safe-top))] items-center justify-between border-b border-hairline/60 bg-page/88 px-5 pt-[var(--safe-top)] backdrop-blur-xl md:pointer-events-none md:fixed md:inset-x-0 md:h-[calc(4rem+var(--safe-top))] md:border-0 md:bg-transparent md:px-6 md:pt-[calc(1rem+var(--safe-top))] md:pl-[calc(15rem+1.5rem)]">
+      <Link
+        href="/dashboard"
+        aria-label="Lifequest home"
+        className="tappable inline-flex min-h-11 items-center gap-2 font-display text-sm font-bold md:hidden"
+      >
+        <span className="grid size-7 place-items-center rounded-lg bg-violet/15 text-gold-ink">
+          <Sparkles className="size-3.5" aria-hidden />
+        </span>
+        Lifequest
+      </Link>
+
+      <Link
+        href={signedIn ? "/account" : identityUnknown ? pathname : signInHref}
+        aria-label={
+          signedIn
+            ? `Account, signed in${email ? ` as ${email}` : ""}${syncNeedsAttention ? ", sync needs attention" : ""}`
+            : identityUnknown
+              ? "Account status could not be verified"
+            : "Sign in to your account"
+        }
+        className={cn(
+          "panel-glass tappable pointer-events-auto ml-auto inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full border px-2.5 text-sm font-semibold shadow-sm",
+          signedIn
+            ? "border-success/30"
+            : identityUnknown
+              ? "border-warn/45 text-warn"
+              : "border-violet/45 text-violet-soft",
+        )}
+      >
+        {signedIn ? (
+          <>
+            <span className="relative grid size-7 place-items-center rounded-full bg-violet/18 text-xs font-bold text-violet-soft">
+              {initial}
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute right-0 bottom-0 size-2.5 rounded-full border-2 border-surface",
+                  syncNeedsAttention ? "bg-warn" : "bg-success",
+                )}
+              />
+            </span>
+            <span className="max-w-28 truncate text-xs sm:max-w-44 lg:text-sm">
+              {email ?? "Account"}
+            </span>
+            {syncNeedsAttention && <CloudAlert className="size-4 text-warn" aria-hidden />}
+          </>
+        ) : identityUnknown ? (
+          <>
+            <CloudAlert className="size-4" aria-hidden />
+            <span>Account check</span>
+          </>
+        ) : (
+          <>
+            <LogIn className="size-4" aria-hidden />
+            <span>Sign in</span>
+          </>
+        )}
+      </Link>
+    </header>
   );
 }

@@ -140,12 +140,20 @@ export async function disablePush(): Promise<void> {
   const subscription = await registration?.pushManager.getSubscription();
 
   if (subscription) {
-    await fetch(`/api/push/subscribe?endpoint=${encodeURIComponent(subscription.endpoint)}`, {
+    const response = await fetch(`/api/push/subscribe?endpoint=${encodeURIComponent(subscription.endpoint)}`, {
       method: "DELETE",
     });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.message ?? "The server could not turn notifications off.");
+    }
     await subscription.unsubscribe().catch(() => {});
   } else {
-    await fetch("/api/push/subscribe", { method: "DELETE" });
+    const response = await fetch("/api/push/subscribe", { method: "DELETE" });
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.message ?? "The server could not turn notifications off.");
+    }
   }
 }
 

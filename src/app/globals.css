@@ -433,6 +433,14 @@
     transition: transform 0.12s var(--ease-out-expo), filter 0.12s ease;
     touch-action: manipulation;
   }
+  .tappable:focus-visible {
+    outline: 2px solid var(--color-violet-soft);
+    outline-offset: 3px;
+  }
+  :where(input, textarea, select):focus-visible {
+    outline: 2px solid var(--color-violet-soft);
+    outline-offset: 2px;
+  }
   .tappable:active {
     transform: scale(0.965);
     filter: brightness(1.08);

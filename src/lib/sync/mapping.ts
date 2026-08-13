@@ -91,12 +91,22 @@ export function questToRow(quest: Quest, userId: string): QuestRow {
     unit: nullable(quest.unit),
     source: quest.source,
     created_at: quest.createdAt,
+    active_periods: nullable(quest.activePeriods),
     archived_at: nullable(quest.archivedAt),
     updated_at: new Date().toISOString(),
   };
 }
 
 export function rowToQuest(row: QuestRow): Quest {
+  const activePeriods = Array.isArray(row.active_periods)
+    ? row.active_periods.filter(
+        (period): period is { startedAt: string; endedAt?: string } =>
+          !!period &&
+          typeof period === "object" &&
+          typeof period.startedAt === "string" &&
+          (period.endedAt === undefined || typeof period.endedAt === "string"),
+      )
+    : undefined;
   return {
     id: row.id,
     domain: row.domain,
@@ -110,6 +120,7 @@ export function rowToQuest(row: QuestRow): Quest {
     unit: optional(row.unit),
     source: row.source as Quest["source"],
     createdAt: row.created_at,
+    activePeriods: activePeriods?.length ? activePeriods : undefined,
     archivedAt: optional(row.archived_at),
   };
 }

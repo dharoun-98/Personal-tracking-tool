@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Mail, Sparkles } from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { authRedirectUrl } from "@/lib/supabase/config";
+import { safeInternalReturnPath } from "@/lib/safe-return";
 import { useGame } from "@/lib/store";
 import { cn } from "@/lib/cn";
 import { Panel } from "@/components/ui/panel";
@@ -25,7 +26,7 @@ type Method = "password" | "link";
  * signing up is for backup and for getting your documents by email, not a toll
  * gate.
  */
-export function AuthForm({ mode }: { mode: Mode }) {
+export function AuthForm({ mode, next = "/dashboard" }: { mode: Mode; next?: string }) {
   const router = useRouter();
   const supabase = getSupabaseBrowser();
   const profileName = useGame((s) => s.profile?.displayName);
@@ -38,6 +39,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const [sent, setSent] = useState(false);
 
   const isSignUp = mode === "sign-up";
+  const safeNext = safeInternalReturnPath(next);
 
   if (!supabase) {
     return (
@@ -49,8 +51,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
           device.
         </p>
         <Link
-          href="/dashboard"
-          className="mt-4 inline-flex text-xs font-semibold text-violet-soft"
+          href={safeNext}
+          className="tappable mt-2 inline-flex min-h-11 items-center text-xs font-semibold text-violet-soft"
         >
           Back to your board
         </Link>
@@ -68,7 +70,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
         const { error } = await supabase.auth.signInWithOtp({
           email: email.trim(),
           options: {
-            emailRedirectTo: authRedirectUrl(),
+            emailRedirectTo: authRedirectUrl(
+              `/auth/callback?next=${encodeURIComponent(safeNext)}`,
+            ),
             shouldCreateUser: isSignUp,
             data: profileName ? { display_name: profileName } : undefined,
           },
@@ -83,7 +87,9 @@ export function AuthForm({ mode }: { mode: Mode }) {
           email: email.trim(),
           password,
           options: {
-            emailRedirectTo: authRedirectUrl(),
+            emailRedirectTo: authRedirectUrl(
+              `/auth/callback?next=${encodeURIComponent(safeNext)}`,
+            ),
             data: profileName ? { display_name: profileName } : undefined,
           },
         });
@@ -105,7 +111,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
       // Straight to the board. The sync manager restores whatever this account
       // already has before the shell renders, so there's no reason to detour
       // through an account screen and ask them to press a button.
-      router.push("/dashboard");
+      router.push(safeNext);
       router.refresh();
     } catch (caught) {
       const message =
@@ -130,7 +136,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
         <button
           type="button"
           onClick={() => setSent(false)}
-          className="mt-4 text-2xs font-semibold text-violet-soft underline underline-offset-2"
+          className="tappable mt-2 inline-flex min-h-11 items-center text-2xs font-semibold text-violet-soft underline underline-offset-2"
         >
           Use a different address
         </button>
@@ -140,17 +146,22 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
   return (
     <form onSubmit={submit} className="space-y-4">
-      <div className="flex gap-1 rounded-2xl bg-surface-2 p-1">
+      <div
+        className="flex gap-1 rounded-2xl bg-surface-2 p-1"
+        role="group"
+        aria-label="Sign-in method"
+      >
         {(["password", "link"] as const).map((option) => (
           <button
             key={option}
             type="button"
+            aria-pressed={method === option}
             onClick={() => {
               setMethod(option);
               setError(null);
             }}
             className={cn(
-              "tappable flex-1 rounded-xl py-2.5 text-xs font-semibold transition-colors",
+              "tappable min-h-11 flex-1 rounded-xl px-2 py-2.5 text-xs font-semibold transition-colors",
               method === option ? "bg-surface text-ink shadow-sm" : "text-ink-mute",
             )}
           >
@@ -199,7 +210,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
       )}
 
       {error && (
-        <p className="rounded-xl bg-danger/12 px-3.5 py-2.5 text-xs text-danger">{error}</p>
+        <p
+          className="rounded-xl bg-danger/12 px-3.5 py-2.5 text-xs text-danger"
+          role="alert"
+          aria-live="assertive"
+        >
+          {error}
+        </p>
       )}
 
       <Button type="submit" size="lg" fullWidth loading={busy}>
@@ -211,14 +228,20 @@ export function AuthForm({ mode }: { mode: Mode }) {
         {isSignUp ? (
           <>
             Already have one?{" "}
-            <Link href="/auth/sign-in" className="font-semibold text-violet-soft">
+            <Link
+              href={`/auth/sign-in?next=${encodeURIComponent(safeNext)}`}
+              className="tappable inline-flex min-h-11 items-center font-semibold text-violet-soft"
+            >
               Sign in
             </Link>
           </>
         ) : (
           <>
             No account yet?{" "}
-            <Link href="/auth/sign-up" className="font-semibold text-violet-soft">
+            <Link
+              href={`/auth/sign-up?next=${encodeURIComponent(safeNext)}`}
+              className="tappable inline-flex min-h-11 items-center font-semibold text-violet-soft"
+            >
               Create one
             </Link>
           </>

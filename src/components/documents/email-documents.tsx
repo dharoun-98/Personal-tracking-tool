@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Check, Loader2, Mail } from "lucide-react";
+import { useEffect, useId, useState } from "react";
+import { Check, Mail } from "lucide-react";
 import { renderDocument, DOCUMENT_META } from "@/lib/pdf/generate";
 import { useGame } from "@/lib/store";
-import { cn } from "@/lib/cn";
 import { Panel } from "@/components/ui/panel";
+import { Button } from "@/components/ui/button";
 import { useDocumentData } from "./document-card";
 
 type State =
@@ -38,6 +38,8 @@ export function EmailDocuments() {
   const data = useDocumentData();
   const account = useGame((s) => s.account);
   const setAccount = useGame((s) => s.setAccount);
+  const emailId = useId();
+  const disclosureId = useId();
 
   const [available, setAvailable] = useState<boolean | null>(null);
   const [email, setEmail] = useState(account.email ?? "");
@@ -116,53 +118,77 @@ export function EmailDocuments() {
     <Panel className="p-4">
       <div className="flex items-start gap-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-violet/15 text-violet-soft">
-          <Mail className="size-4.5" />
+          <Mail className="size-4.5" aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">Email them to yourself</p>
-          <p className="mt-1 text-xs leading-relaxed text-ink-mute">
-            Both PDFs, attached. Handy for finding the promise letter again in a
-            year when you&apos;ve forgotten where you put it.
+          <p
+            id={disclosureId}
+            className="mt-1 text-xs leading-relaxed text-ink-mute"
+          >
+            Both PDFs are built on this device. If you tap Send, copies are
+            passed to our email provider for delivery to the address below.
           </p>
 
           {state.kind === "sent" ? (
-            <p className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-success/15 px-3 py-2 text-xs font-semibold text-success">
-              <Check className="size-3.5" />
-              Sent to {email.trim()}
-            </p>
+            <div className="mt-3">
+              <p
+                className="inline-flex max-w-full items-center gap-1.5 rounded-xl bg-success/15 px-3 py-2 text-xs font-semibold text-success"
+                role="status"
+                aria-live="polite"
+              >
+                <Check className="size-3.5 shrink-0" aria-hidden />
+                <span className="min-w-0 break-all">Sent to {email.trim()}</span>
+              </p>
+              <button
+                type="button"
+                onClick={() => setState({ kind: "idle" })}
+                className="tappable mt-1 inline-flex min-h-11 items-center text-2xs font-semibold text-violet-soft underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-soft"
+              >
+                Send to another address
+              </button>
+            </div>
           ) : (
             <>
-              <div className="mt-3 flex gap-2">
-                <input
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (state.kind === "error") setState({ kind: "idle" });
-                  }}
-                  placeholder="you@example.com"
-                  className="min-w-0 flex-1 rounded-xl border border-edge bg-sunken px-3 py-2.5 text-sm outline-none placeholder:text-ink-faint focus:border-violet"
-                />
-                <button
-                  type="button"
-                  onClick={send}
-                  disabled={!valid || state.kind === "sending" || available === null}
-                  className={cn(
-                    "tappable shrink-0 rounded-xl bg-violet px-3.5 py-2.5 text-xs font-semibold text-white",
-                    "transition-colors hover:bg-violet-soft disabled:opacity-45",
-                  )}
+              <div className="mt-3">
+                <label
+                  htmlFor={emailId}
+                  className="mb-1.5 block text-2xs font-medium text-ink-mute"
                 >
-                  {state.kind === "sending" ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    "Send"
-                  )}
-                </button>
+                  Email address
+                </label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    id={emailId}
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    aria-describedby={disclosureId}
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (state.kind === "error") setState({ kind: "idle" });
+                    }}
+                    placeholder="you@example.com"
+                    className="min-w-0 flex-1 rounded-xl border border-edge bg-sunken px-3 py-2.5 text-sm outline-none placeholder:text-ink-faint focus:border-violet focus-visible:ring-2 focus-visible:ring-violet/25"
+                  />
+                  <Button
+                    type="button"
+                    size="md"
+                    className="shrink-0"
+                    onClick={send}
+                    disabled={!valid || available === null}
+                    loading={state.kind === "sending"}
+                    aria-busy={state.kind === "sending"}
+                  >
+                    Send PDFs
+                  </Button>
+                </div>
               </div>
               {state.kind === "error" && (
-                <p className="mt-2 text-2xs text-danger">{state.message}</p>
+                <p className="mt-2 text-2xs text-danger" role="alert">
+                  {state.message}
+                </p>
               )}
             </>
           )}

@@ -28,7 +28,7 @@ interface QuestCardProps {
 export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardProps) {
   const { quest, log, streak, periodDone, periodTarget } = item;
   const meta = getDomain(quest.domain);
-  const done = !!log && log.status !== "skipped";
+  const done = log?.status === "done";
   const skipped = log?.status === "skipped";
   const partial = log?.status === "partial";
 
@@ -103,7 +103,7 @@ export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardPr
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="min-w-0 flex-1 text-left"
+          className="tappable min-h-11 min-w-0 flex-1 text-left"
           aria-expanded={expanded}
         >
           <p
@@ -134,7 +134,13 @@ export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardPr
         <button
           type="button"
           onClick={handlePrimary}
-          aria-label={done ? `Undo ${quest.title}` : `Complete ${quest.title}`}
+          aria-label={
+            done
+              ? `Undo completion for ${quest.title}`
+              : log
+                ? `Change ${quest.title} to complete`
+                : `Complete ${quest.title}`
+          }
           className={cn(
             "tappable grid size-11 shrink-0 place-items-center rounded-full border-2 transition-all",
             done
@@ -194,7 +200,7 @@ export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardPr
                       type="button"
                       onClick={() => setValue((v) => Math.max(0, v - step))}
                       aria-label="Decrease"
-                      className="tappable grid size-8 place-items-center rounded-lg bg-surface-2 text-ink-dim"
+                      className="tappable grid size-11 place-items-center rounded-lg bg-surface-2 text-ink-dim"
                     >
                       <Minus className="size-3.5" />
                     </button>
@@ -206,7 +212,7 @@ export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardPr
                       type="button"
                       onClick={() => setValue((v) => v + step)}
                       aria-label="Increase"
-                      className="tappable grid size-8 place-items-center rounded-lg bg-surface-2 text-ink-dim"
+                      className="tappable grid size-11 place-items-center rounded-lg bg-surface-2 text-ink-dim"
                     >
                       <Plus className="size-3.5" />
                     </button>
@@ -223,7 +229,7 @@ export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardPr
                       onLog(hitTarget ? "done" : "partial", value);
                       setExpanded(false);
                     }}
-                    className="tappable rounded-xl px-3 py-2 text-xs font-semibold text-on-accent"
+                    className="tappable min-h-11 rounded-xl px-3 py-2 text-xs font-semibold text-on-accent"
                     style={{ background: meta.color }}
                   >
                     Log {value} {quest.unit}
@@ -236,7 +242,7 @@ export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardPr
                       onLog("partial");
                       setExpanded(false);
                     }}
-                    className="tappable rounded-xl bg-surface-2 px-3 py-2 text-xs font-medium text-ink-dim"
+                    className="tappable min-h-11 rounded-xl bg-surface-2 px-3 py-2 text-xs font-medium text-ink-dim"
                   >
                     Partly did it
                   </button>
@@ -247,7 +253,7 @@ export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardPr
                     onLog("skipped");
                     setExpanded(false);
                   }}
-                  className="tappable inline-flex items-center gap-1.5 rounded-xl bg-surface-2 px-3 py-2 text-xs font-medium text-ink-mute"
+                  className="tappable inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-surface-2 px-3 py-2 text-xs font-medium text-ink-mute"
                 >
                   <SkipForward className="size-3.5" />
                   Skip today
@@ -259,7 +265,7 @@ export function QuestCard({ item, onLog, onClear, compact = false }: QuestCardPr
                       onClear();
                       setExpanded(false);
                     }}
-                    className="tappable inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-ink-faint"
+                    className="tappable inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-ink-faint"
                   >
                     <Undo2 className="size-3.5" />
                     Clear

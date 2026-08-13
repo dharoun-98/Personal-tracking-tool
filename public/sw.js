@@ -6,19 +6,25 @@
  * stale app shell forever) is genuinely nasty to debug.
  *
  * Strategy:
- *   - navigations      → network first, fall back to cache, then /offline
+ *   - navigations      → network only, fall back to /offline
  *   - /_next/static/*  → cache first (content-hashed, immutable)
  *   - images & icons   → stale-while-revalidate
  *   - everything else  → straight to the network
  *
- * Game data is NOT cached here: it lives in localStorage, so the app is fully
- * usable offline without the worker knowing anything about it.
+ * Game data is NOT cached here: it lives in localStorage, so an already-open
+ * app keeps working offline without the worker knowing anything about it. A
+ * cold navigation falls back to the deliberately anonymous offline page.
+ *
+ * Navigation HTML is private by default. It can contain an email address,
+ * account state, billing access, or an admin view, and Cache Storage does not
+ * partition entries by the signed-in cookie. Replaying a cached page after a
+ * sign-out or account switch would therefore show the previous person's
+ * identity. Static assets remain safely cacheable; document responses do not.
  */
 
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL_CACHE = `lifequest-shell-${VERSION}`;
 const ASSET_CACHE = `lifequest-assets-${VERSION}`;
-const PAGE_CACHE = `lifequest-pages-${VERSION}`;
 const OFFLINE_URL = "/offline";
 
 const PRECACHE = [OFFLINE_URL, "/manifest.webmanifest", "/icons/icon-192.png"];
@@ -85,14 +91,11 @@ self.addEventListener("fetch", (event) => {
 
 async function handleNavigation(request) {
   try {
-    const response = await fetch(request);
-    // Keep the last-good copy of each page for offline use.
-    const cache = await caches.open(PAGE_CACHE);
-    cache.put(request, response.clone());
-    return response;
+    // Never put document HTML in Cache Storage. Requests include cookies, but
+    // cache keys do not safely separate one authenticated identity from the
+    // next person using the same browser profile.
+    return await fetch(request);
   } catch {
-    const cached = await caches.match(request);
-    if (cached) return cached;
     const offline = await caches.match(OFFLINE_URL);
     if (offline) return offline;
     return new Response("You're offline.", {

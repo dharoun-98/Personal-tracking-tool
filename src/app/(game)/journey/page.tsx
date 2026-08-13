@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
-import { Award, Lock } from "lucide-react";
-import { dayRange, fromDayKey } from "@/lib/date";
-import { buildToday, levelTitle, xpOnDay } from "@/lib/game";
+import { ArrowRight, Award, Lock } from "lucide-react";
+import { dayRange, fromDayKey, prettyDay } from "@/lib/date";
+import { buildToday, completionCredit, levelTitle, xpOnDay } from "@/lib/game";
 import { compactNumber } from "@/lib/format";
 import { useSnapshot } from "@/lib/selectors";
 import { useGame } from "@/lib/store";
@@ -12,6 +13,7 @@ import { useNowMs } from "@/lib/use-now";
 import { cn } from "@/lib/cn";
 import { getDomain } from "@/lib/domains";
 import { Panel, SectionTitle } from "@/components/ui/panel";
+import { buttonClasses } from "@/components/ui/button";
 import { XpBar } from "@/components/ui/xp-bar";
 import { DayHeatmap, type HeatCell } from "@/components/game/day-heatmap";
 import { StreakFlame } from "@/components/game/streak-flame";
@@ -58,11 +60,41 @@ export default function JourneyPage() {
       dayRange(28).map((date) => {
         const view = buildToday(quests, logs, date).filter((t) => t.due || t.log);
         if (view.length === 0) return { date, value: null };
-        const done = view.filter((t) => t.log && t.log.status !== "skipped").length;
-        return { date, value: done / view.length };
+        const credit = view.reduce(
+          (sum, item) => sum + completionCredit(item.log?.status),
+          0,
+        );
+        return { date, value: credit / view.length };
       }),
     [quests, logs],
   );
+
+  const fullyCompletedDays = useMemo(() => {
+    const loggedDays = [...new Set(logs.map((log) => log.date))];
+    return loggedDays.filter((date) => {
+      const view = buildToday(quests, logs, date).filter((item) => item.due || item.log);
+      return view.length > 0 && view.every((item) => item.log?.status === "done");
+    }).length;
+  }, [quests, logs]);
+
+  const xpPeriodTotal = xpSeries.reduce((sum, point) => sum + point.xp, 0);
+  const xpActiveDays = xpSeries.filter((point) => point.xp > 0).length;
+  const bestXpDay = xpSeries.reduce((best, point) =>
+    point.xp > best.xp ? point : best,
+  );
+  const xpSummary = `${compactNumber(xpPeriodTotal)} XP across ${xpActiveDays} ${
+    xpActiveDays === 1 ? "day" : "days"
+  }. Best day: ${prettyDay(bestXpDay.day)}, ${compactNumber(bestXpDay.xp)} XP.`;
+
+  const scheduledDays = heatCells.filter((cell) => cell.value !== null).length;
+  const showingUpDays = heatCells.filter((cell) => (cell.value ?? 0) > 0).length;
+  const fullDays = heatCells.filter((cell) => cell.value === 1).length;
+  const heatSummary =
+    scheduledDays === 0
+      ? "Nothing was scheduled in the last four weeks."
+      : `You showed up on ${showingUpDays} of ${scheduledDays} scheduled ${
+          scheduledDays === 1 ? "day" : "days"
+        }, with ${fullDays} ${fullDays === 1 ? "day" : "days"} fully completed.`;
 
   /** Ids unlocked in the last day — these get the "NEW" flash. */
   const recentlyUnlocked = useMemo(() => {
@@ -125,48 +157,111 @@ export default function JourneyPage() {
       {/* ---------------------------------------------------------- Stats */}
       <div className="grid grid-cols-3 gap-2.5">
         <StatTile value={achievementContext.activeDays} label="Active days" />
-        <StatTile value={achievementContext.perfectDays} label="Perfect days" />
+        <StatTile value={fullyCompletedDays} label="All-done days" />
         <StatTile value={earned.length} label="Achievements" />
       </div>
 
-      {/* ------------------------------------------------------ XP chart */}
-      <section>
-        <SectionTitle>XP, last two weeks</SectionTitle>
-        <Panel className="p-4">
-          <div className="flex h-28 items-end gap-1.5">
-            {xpSeries.map((point, i) => (
-              <div key={point.day} className="flex flex-1 flex-col items-center gap-1.5">
-                <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: `${Math.max(point.height * 100, point.xp > 0 ? 8 : 2)}%` }}
-                  transition={{ delay: i * 0.03, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                  className={cn(
-                    "w-full rounded-t-md",
-                    point.xp > 0 ? "bg-linear-to-t from-violet/40 to-cyan" : "bg-surface-3",
-                  )}
-                  style={
-                    point.xp > 0
-                      ? { boxShadow: "0 0 12px -3px var(--color-cyan)" }
-                      : undefined
-                  }
-                  title={`${point.xp} XP`}
-                />
-                <span className="text-[0.5rem] text-ink-faint tabular-nums">
-                  {fromDayKey(point.day).getDate()}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      </section>
+      {logs.length === 0 ? (
+        <section>
+          <SectionTitle>Progress over time</SectionTitle>
+          <Panel className="p-6 text-center">
+            <p className="text-sm font-semibold">Your history starts with one check-in.</p>
+            <p className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-ink-mute">
+              Complete, partially log, or intentionally skip a quest. Your XP trend and
+              four-week activity map will grow from there.
+            </p>
+            <Link
+              href="/dashboard"
+              className={buttonClasses({ variant: "secondary", size: "sm", className: "mt-4" })}
+            >
+              Open today&apos;s board
+              <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          </Panel>
+        </section>
+      ) : (
+        <>
+          {/* ------------------------------------------------------ XP chart */}
+          <section>
+            <SectionTitle>XP, last two weeks</SectionTitle>
+            <Panel className="p-4">
+              {xpPeriodTotal === 0 ? (
+                <div className="py-4 text-center">
+                  <p className="text-sm font-medium">No XP earned in this window.</p>
+                  <p className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-ink-mute">
+                    Partial work still earns XP. Complete or partially log a quest to start
+                    the next bar.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div role="img" aria-label={`XP over the last two weeks. ${xpSummary}`}>
+                    <div className="flex h-28 items-end gap-1.5" aria-hidden>
+                      {xpSeries.map((point, i) => (
+                        <div
+                          key={point.day}
+                          className="flex flex-1 flex-col items-center gap-1.5"
+                        >
+                          <motion.div
+                            initial={{ height: 0 }}
+                            animate={{
+                              height: `${Math.max(point.height * 100, point.xp > 0 ? 8 : 2)}%`,
+                            }}
+                            transition={{
+                              delay: i * 0.03,
+                              duration: 0.5,
+                              ease: [0.16, 1, 0.3, 1],
+                            }}
+                            className={cn(
+                              "w-full rounded-t-md",
+                              point.xp > 0
+                                ? "bg-linear-to-t from-violet/40 to-cyan"
+                                : "bg-surface-3",
+                            )}
+                            style={
+                              point.xp > 0
+                                ? { boxShadow: "0 0 12px -3px var(--color-cyan)" }
+                                : undefined
+                            }
+                          />
+                          <span className="text-2xs text-ink-faint tabular-nums">
+                            {fromDayKey(point.day).getDate()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs leading-relaxed text-ink-mute">{xpSummary}</p>
+                </>
+              )}
+            </Panel>
+          </section>
 
-      {/* -------------------------------------------------------- Heatmap */}
-      <section>
-        <SectionTitle>Showing up</SectionTitle>
-        <Panel className="p-4">
-          <DayHeatmap cells={heatCells} color="var(--color-violet)" />
-        </Panel>
-      </section>
+          {/* -------------------------------------------------------- Heatmap */}
+          <section>
+            <SectionTitle>Showing up, last four weeks</SectionTitle>
+            <Panel className="p-4">
+              <div
+                role="group"
+                aria-label="Daily completion for the last four weeks"
+                aria-describedby="journey-heat-summary"
+              >
+                <DayHeatmap cells={heatCells} color="var(--color-violet)" />
+              </div>
+              <p
+                id="journey-heat-summary"
+                className="mt-3 text-xs leading-relaxed text-ink-mute"
+              >
+                {heatSummary}
+              </p>
+              <p className="mt-1 text-2xs leading-relaxed text-ink-faint">
+                Partial check-ins count as half; intentional skips resolve the day without
+                counting as completion.
+              </p>
+            </Panel>
+          </section>
+        </>
+      )}
 
       {/* --------------------------------------------------- Achievements */}
       <section>
@@ -175,7 +270,7 @@ export default function JourneyPage() {
             <button
               type="button"
               onClick={() => setShowLocked((v) => !v)}
-              className="tappable text-2xs font-semibold text-violet-soft"
+              className="tappable inline-flex min-h-11 items-center text-2xs font-semibold text-violet-soft"
             >
               {showLocked ? "Hide locked" : "Show all"}
             </button>

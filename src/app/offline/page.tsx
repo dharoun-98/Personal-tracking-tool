@@ -13,14 +13,14 @@ export default function OfflinePage() {
         </span>
         <h1 className="font-display text-2xl font-bold">You&apos;re offline</h1>
         <p className="mt-2.5 text-sm leading-relaxed text-ink-mute text-pretty">
-          Your progress is safe on this device — nothing is lost. Pages you&apos;ve
-          already opened still work; the rest will come back with your connection.
+          Your progress is safe on this device — nothing is lost. An already-open
+          screen can keep recording changes, but reconnect before opening another page.
         </p>
         <Link
           href="/dashboard"
           className={buttonClasses({ variant: "secondary", size: "md", className: "mt-6" })}
         >
-          Back to today
+          Try today again
         </Link>
       </div>
     </main>

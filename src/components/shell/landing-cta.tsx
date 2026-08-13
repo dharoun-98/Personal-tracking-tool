@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useGame, useHydrated } from "@/lib/store";
-import { isCloudEnabled } from "@/lib/supabase/config";
 import { buttonClasses } from "@/components/ui/button-styles";
 
 /**
@@ -18,14 +17,17 @@ import { buttonClasses } from "@/components/ui/button-styles";
  * without a way in from here their only route is to fake an onboarding they
  * have already done.
  */
-export function LandingCta() {
+export function LandingCta({ signedIn = false }: { signedIn?: boolean }) {
   const hydrated = useHydrated();
   const complete = useGame((s) => s.onboardingComplete);
   const name = useGame((s) => s.profile?.displayName);
 
-  const returning = hydrated && complete;
+  const localWorldReady = hydrated && complete;
+  // A signed-in player may be opening a completely fresh device. Dashboard is
+  // the route that mounts cloud restore; onboarding would ask them to recreate
+  // a world they already own.
+  const returning = signedIn || localWorldReady;
   const first = name?.split(" ")[0];
-  const cloud = isCloudEnabled();
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -33,7 +35,11 @@ export function LandingCta() {
         href={returning ? "/dashboard" : "/onboarding"}
         className={buttonClasses({ variant: "gold", size: "xl" })}
       >
-        {returning ? `Continue${first ? `, ${first}` : ""}` : "Start your game"}
+        {localWorldReady
+          ? `Continue${first ? `, ${first}` : ""}`
+          : signedIn
+            ? "Open your world"
+            : "Start your game"}
         <ArrowRight className="size-5" />
       </Link>
 
@@ -43,16 +49,16 @@ export function LandingCta() {
         </p>
       )}
 
-      {cloud && !returning && (
+      {!signedIn && (
         <p className="mt-1 text-xs text-ink-mute">
-          Already playing?{" "}
+          {returning ? "Want this world on every device?" : "Already playing?"}{" "}
           <Link
             href="/auth/sign-in"
             className="font-semibold text-violet-soft underline underline-offset-2"
           >
             Sign in
           </Link>{" "}
-          and your world comes with you.
+          {returning ? "to turn on cloud sync." : "and your world comes with you."}
         </p>
       )}
     </div>

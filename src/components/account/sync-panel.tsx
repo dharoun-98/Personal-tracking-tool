@@ -48,11 +48,11 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
           every device, automatically.
         </p>
         <div className="mt-3.5 flex gap-2.5">
-          <Link href="/auth/sign-up" className={buttonClasses({ size: "sm" })}>
+          <Link href="/auth/sign-up?next=%2Faccount" className={buttonClasses({ size: "sm" })}>
             Create an account
           </Link>
           <Link
-            href="/auth/sign-in"
+            href="/auth/sign-in?next=%2Faccount"
             className={buttonClasses({ variant: "ghost", size: "sm" })}
           >
             Sign in
@@ -66,7 +66,13 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
     setBusy(choice);
     const result = choice === "push" ? await pushSnapshot() : await pullSnapshot();
     setBusy(null);
-    setPhase("ready", result.ok ? null : result.message);
+    if (result.ok) {
+      setPhase("ready");
+      return;
+    }
+    // A failed choice must not dismiss the conflict or re-open automatic
+    // writes. Keep both options visible so the player can retry deliberately.
+    setPhase("conflict", result.message);
   };
 
   /* --- Genuine divergence: ask, never guess ------------------------- */
@@ -85,6 +91,11 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
               and we can&apos;t safely merge the two. Pick which to keep — the
               other is replaced.
             </p>
+            {statusError && (
+              <p role="alert" className="mt-2.5 text-xs text-danger">
+                {statusError}
+              </p>
+            )}
           </div>
         </div>
 
@@ -131,6 +142,7 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
 
   /* --- Everything else ---------------------------------------------- */
   const syncing = phase === "restoring" || busy !== null;
+  const failed = phase === "error";
   const pending = hasUnpushedChanges();
 
   return (
@@ -141,6 +153,8 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
             "grid size-9 shrink-0 place-items-center rounded-xl",
             phase === "offline"
               ? "bg-surface-2 text-ink-faint"
+              : failed
+                ? "bg-danger/15 text-danger"
               : "bg-success/15 text-success",
           )}
         >
@@ -148,6 +162,8 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
             <Loader2 className="size-4.5 animate-spin" />
           ) : phase === "offline" ? (
             <CloudOff className="size-4.5" />
+          ) : failed ? (
+            <AlertTriangle className="size-4.5" />
           ) : (
             <Check className="size-4.5" strokeWidth={2.5} />
           )}
@@ -157,6 +173,8 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
           <p className="text-sm font-semibold">
             {phase === "offline"
               ? "Not syncing"
+              : failed
+                ? "Sync needs attention"
               : syncing
                 ? "Syncing…"
                 : pending
@@ -166,13 +184,15 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
           <p className="mt-1 text-xs leading-relaxed text-ink-mute">
             {phase === "offline"
               ? "Cloud sync isn't available right now. Your game carries on locally and will catch up when it can."
+              : failed
+                ? "Your data is still safe on this device. Try again when your connection is ready."
               : sync.lastPushedAt
                 ? `Last saved ${new Date(sync.lastPushedAt).toLocaleString()}. Changes sync on their own — every device you sign in to stays in step.`
                 : "Your world syncs automatically from now on. Sign in anywhere and it follows you."}
           </p>
 
           {statusError && (
-            <p className="mt-2.5 text-2xs text-danger">{statusError}</p>
+            <p role="alert" className="mt-2.5 text-xs text-danger">{statusError}</p>
           )}
 
           <Button
@@ -189,6 +209,8 @@ export function SyncPanel({ signedIn }: { signedIn: boolean }) {
                   ? "conflict"
                   : result.kind === "unavailable"
                     ? "offline"
+                    : result.kind === "failed"
+                      ? "error"
                     : "ready",
                 result.kind === "failed" ? result.message : null,
               );

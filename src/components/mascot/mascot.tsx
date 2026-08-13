@@ -135,9 +135,11 @@ export function Mascot() {
                 type="button"
                 onClick={hide}
                 aria-label="Dismiss"
-                className="tappable absolute -top-2 -left-2 grid size-6 place-items-center rounded-full border border-edge bg-surface-2 text-ink-faint"
+                className="tappable absolute -top-4 -left-4 grid size-11 place-items-center rounded-full text-ink-faint"
               >
-                <X className="size-3" strokeWidth={2.5} />
+                <span className="grid size-6 place-items-center rounded-full border border-edge bg-surface-2">
+                  <X className="size-3" strokeWidth={2.5} />
+                </span>
               </button>
 
               <p className="text-sm leading-relaxed text-ink text-pretty">{bubble.text}</p>
@@ -146,7 +148,7 @@ export function Mascot() {
                 <button
                   type="button"
                   onClick={runAction}
-                  className="tappable mt-2.5 w-full rounded-xl bg-violet/18 px-3 py-2 text-xs font-semibold text-violet-soft transition-colors hover:bg-violet/28"
+                  className="tappable mt-2.5 min-h-11 w-full rounded-xl bg-violet/18 px-3 py-2 text-xs font-semibold text-violet-soft transition-colors hover:bg-violet/28"
                 >
                   {bubble.action.label}
                 </button>

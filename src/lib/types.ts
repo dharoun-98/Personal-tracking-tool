@@ -53,6 +53,8 @@ export interface Quest {
   target?: number;
   unit?: string;
   createdAt: string;
+  /** Schedule intervals retained across pause/restore for honest history. */
+  activePeriods?: Array<{ startedAt: string; endedAt?: string }>;
   archivedAt?: string;
   source: "onboarding" | "user" | "suggested";
 }

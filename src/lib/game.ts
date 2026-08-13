@@ -1,5 +1,11 @@
 import { DOMAIN_IDS } from "./domains";
 import {
+  completionCredit,
+  flexibleQuestBelongsOnDay,
+  questBelongsOnDay,
+  questWasActiveOnDay,
+} from "./quest-schedule";
+import {
   dayRange,
   daysBetween,
   monthBounds,
@@ -25,6 +31,7 @@ import type {
  * ================================================================== */
 
 const BASE_XP: Record<Difficulty, number> = { 1: 10, 2: 20, 3: 35 };
+export { completionCredit } from "./quest-schedule";
 
 /** Streak bonus tops out at +25% so late-game days never trivialise early ones. */
 function streakMultiplier(streak: number): number {
@@ -36,8 +43,7 @@ export function xpForLog(
   status: LogStatus,
   streak = 0,
 ): number {
-  if (status === "skipped") return 0;
-  const base = BASE_XP[quest.difficulty] * (status === "partial" ? 0.5 : 1);
+  const base = BASE_XP[quest.difficulty] * completionCredit(status);
   return Math.round(base * streakMultiplier(streak));
 }
 
@@ -199,6 +205,41 @@ export function isQuestDue(
   }
 }
 
+/**
+ * Whether a quest belongs in a historical day view.
+ *
+ * Creation and archive timestamps are instants while the game calendar is a
+ * local day key. Comparing their leading date is the best deterministic
+ * eligibility boundary available in the current persisted schema. A real log
+ * always wins: management actions must never hide recorded history.
+ */
+function isQuestDueOnHistoricalDay(
+  quest: Quest,
+  index: LogIndex,
+  day: DayKey,
+): boolean {
+  if (!questWasActiveOnDay(quest, day)) return false;
+  switch (quest.cadence.kind) {
+    case "daily":
+      return true;
+    case "specific-days":
+      return quest.cadence.days.includes(weekdayOf(day));
+    case "times-per-week":
+    case "times-per-month": {
+      const start =
+        quest.cadence.kind === "times-per-week"
+          ? weekBounds(day).start
+          : monthBounds(day).start;
+      const doneBeforeToday = countInRange(index, quest.id, start, shiftDay(day, -1));
+      return flexibleQuestBelongsOnDay(
+        quest.cadence,
+        doneBeforeToday,
+        !!logFor(index, quest.id, day),
+      );
+    }
+  }
+}
+
 /* ================================================================== *
  * Streaks
  * ================================================================== */
@@ -324,8 +365,7 @@ export function weightedAdherence(
     const age = windowDays - 1 - i;
     const weight = Math.pow(0.5, age / 5);
     for (const quest of quests) {
-      if (quest.archivedAt && quest.archivedAt <= day) continue;
-      if (quest.createdAt.slice(0, 10) > day) continue;
+      if (!questWasActiveOnDay(quest, day)) continue;
 
       const due =
         quest.cadence.kind === "daily"
@@ -337,9 +377,7 @@ export function weightedAdherence(
       if (due) {
         weightedDue += weight;
         const log = logFor(index, quest.id, day);
-        if (log && log.status !== "skipped") {
-          weightedDone += weight * (log.status === "partial" ? 0.5 : 1);
-        }
+        if (log) weightedDone += weight * completionCredit(log.status);
       } else if (
         quest.cadence.kind === "times-per-week" ||
         quest.cadence.kind === "times-per-month"
@@ -350,7 +388,7 @@ export function weightedAdherence(
         const share = target / periodDays;
         weightedDue += weight * share;
         const log = logFor(index, quest.id, day);
-        if (log && log.status !== "skipped") weightedDone += weight * share;
+        if (log) weightedDone += weight * share * completionCredit(log.status);
       }
     }
   });
@@ -399,9 +437,8 @@ export function buildDomainStates(
 
   const out = {} as Record<DomainId, DomainState>;
   for (const domain of DOMAIN_IDS) {
-    const domainQuests = quests.filter(
-      (q) => q.domain === domain && !q.archivedAt,
-    );
+    const domainQuests = quests.filter((q) => q.domain === domain);
+    const activeDomainQuests = domainQuests.filter((q) => !q.archivedAt);
     const recent = weightedAdherence(domainQuests, index, 14, today);
     const prior = weightedAdherence(
       domainQuests,
@@ -419,7 +456,7 @@ export function buildDomainStates(
       streak: domainStreak(domain, quests, index, today),
       adherence,
       trend: recent !== null && prior !== null ? recent - prior : 0,
-      questCount: domainQuests.length,
+      questCount: activeDomainQuests.length,
     };
   }
   return out;
@@ -440,12 +477,16 @@ export function buildToday(
   };
 
   return quests
-    .filter((q) => !q.archivedAt)
+    .filter((quest) =>
+      questBelongsOnDay(quest, day, !!logFor(index, quest.id, day)),
+    )
     .map<DueQuest>((quest) => {
       const { done, target } = periodProgress(quest, index, day);
       return {
         quest,
-        due: isQuestDue(quest, index, day),
+        // Flexible-cadence quests remain visible on a day they were logged,
+        // even when that check-in is the one that completed the quota.
+        due: isQuestDueOnHistoricalDay(quest, index, day),
         log: logFor(index, quest.id, day),
         periodDone: done,
         periodTarget: target,
@@ -453,10 +494,10 @@ export function buildToday(
       };
     })
     .sort((a, b) => {
-      // Unfinished first, then by time of day, then heaviest first.
-      const aDone = !!a.log && a.log.status !== "skipped";
-      const bDone = !!b.log && b.log.status !== "skipped";
-      if (aDone !== bDone) return aDone ? 1 : -1;
+      // Unanswered first; done, partial and skipped are all settled responses.
+      const aResolved = !!a.log;
+      const bResolved = !!b.log;
+      if (aResolved !== bResolved) return aResolved ? 1 : -1;
       const w = windowRank[a.quest.window] - windowRank[b.quest.window];
       if (w !== 0) return w;
       return b.quest.difficulty - a.quest.difficulty;

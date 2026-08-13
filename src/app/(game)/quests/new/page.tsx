@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Check, Plus } from "lucide-react";
 import { DOMAINS, DOMAIN_IDS, getDomain } from "@/lib/domains";
 import { ideasForDomain } from "@/lib/quest-library";
 import { ideaToQuest } from "@/lib/onboarding";
 import { cadenceLabel } from "@/lib/format";
+import { safeInternalReturnPath } from "@/lib/safe-return";
 import { useGame } from "@/lib/store";
 import { cn } from "@/lib/cn";
 import type { Cadence, Difficulty, DomainId, QuestKind, QuestWindow } from "@/lib/types";
@@ -39,20 +40,34 @@ const DIFFICULTY_OPTIONS: Array<{ value: Difficulty; label: string; xp: number }
 ];
 
 export default function NewQuestPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="pt-10" aria-busy="true">
+          <p className="text-sm text-ink-mute">Opening the quest builder…</p>
+        </main>
+      }
+    >
+      <NewQuestForm />
+    </Suspense>
+  );
+}
+
+function NewQuestForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const addQuest = useGame((s) => s.addQuest);
   const existing = useGame((s) => s.quests);
 
-  // Pre-select from ?domain= when arriving from a domain page. Read once, in
-  // the initialiser — this subtree is client-only, so there's nothing to
-  // mismatch against.
-  const [domain, setDomain] = useState<DomainId>(() => {
-    if (typeof window === "undefined") return "health";
-    const requested = new URLSearchParams(window.location.search).get("domain");
-    return requested && DOMAIN_IDS.includes(requested as DomainId)
-      ? (requested as DomainId)
+  // This hook is isolated behind the route's Suspense boundary, so the
+  // deep-link defaults are stable during server rendering and hydration.
+  const requestedDomain = searchParams.get("domain");
+  const initialDomain =
+    requestedDomain && DOMAIN_IDS.includes(requestedDomain as DomainId)
+      ? (requestedDomain as DomainId)
       : "health";
-  });
+  const [domain, setDomain] = useState<DomainId>(initialDomain);
+  const returnTo = safeInternalReturnPath(searchParams.get("returnTo"));
   const [tab, setTab] = useState<"suggested" | "custom">("suggested");
   const [title, setTitle] = useState("");
   const [detail, setDetail] = useState("");
@@ -101,8 +116,8 @@ export default function NewQuestPage() {
       }}
     >
       <Link
-        href="/dashboard"
-        className="tappable inline-flex items-center gap-1.5 text-xs text-ink-mute transition-colors hover:text-ink"
+        href={returnTo}
+        className="tappable inline-flex min-h-11 items-center gap-1.5 text-xs text-ink-mute transition-colors hover:text-ink"
       >
         <ArrowLeft className="size-3.5" />
         Back
@@ -125,9 +140,10 @@ export default function NewQuestPage() {
               <button
                 key={d.id}
                 type="button"
+                aria-pressed={active}
                 onClick={() => setDomain(d.id)}
                 className={cn(
-                  "tappable flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs font-medium transition-all",
+                  "tappable flex min-h-11 shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-xs font-medium transition-all",
                   active ? "bg-surface-2" : "border-edge bg-surface text-ink-mute",
                 )}
                 style={
@@ -154,9 +170,10 @@ export default function NewQuestPage() {
           <button
             key={option}
             type="button"
+            aria-pressed={tab === option}
             onClick={() => setTab(option)}
             className={cn(
-              "tappable flex-1 rounded-xl py-2.5 text-xs font-semibold capitalize transition-colors",
+              "tappable min-h-11 flex-1 rounded-xl py-2.5 text-xs font-semibold capitalize transition-colors",
               tab === option ? "bg-surface text-ink shadow-sm" : "text-ink-mute",
             )}
           >
@@ -223,10 +240,15 @@ export default function NewQuestPage() {
       {tab === "custom" && (
         <section className="space-y-5">
           <div>
-            <label className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase">
+            <label
+              htmlFor="quest-title"
+              className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase"
+            >
               What is it?
             </label>
             <input
+              id="quest-title"
+              name="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Walk after lunch"
@@ -236,10 +258,15 @@ export default function NewQuestPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase">
+            <label
+              htmlFor="quest-detail"
+              className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase"
+            >
               Why it matters <span className="text-ink-faint">(optional)</span>
             </label>
             <input
+              id="quest-detail"
+              name="detail"
               value={detail}
               onChange={(e) => setDetail(e.target.value)}
               placeholder="Clears my head before the afternoon"
@@ -248,10 +275,10 @@ export default function NewQuestPage() {
             />
           </div>
 
-          <div>
-            <label className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase">
+          <fieldset>
+            <legend className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase">
               How often?
-            </label>
+            </legend>
             <div className="grid grid-cols-3 gap-2">
               {CADENCE_OPTIONS.map((option, i) => (
                 <OptionChip
@@ -264,12 +291,12 @@ export default function NewQuestPage() {
                 </OptionChip>
               ))}
             </div>
-          </div>
+          </fieldset>
 
-          <div>
-            <label className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase">
+          <fieldset>
+            <legend className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase">
               How do you track it?
-            </label>
+            </legend>
             <div className="grid grid-cols-4 gap-2">
               {KIND_OPTIONS.map((option) => (
                 <OptionChip
@@ -283,27 +310,38 @@ export default function NewQuestPage() {
                 </OptionChip>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           {kind !== "binary" && (
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase">
+                <label
+                  htmlFor="quest-target"
+                  className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase"
+                >
                   Target
                 </label>
                 <input
+                  id="quest-target"
+                  name="target"
                   type="number"
                   inputMode="numeric"
+                  min={1}
                   value={target}
                   onChange={(e) => setTarget(Math.max(1, Number(e.target.value) || 1))}
                   className="w-full rounded-2xl border border-edge bg-surface px-4 py-3.5 text-sm tabular-nums outline-none focus:border-[var(--accent)]"
                 />
               </div>
               <div className="flex-1">
-                <label className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase">
+                <label
+                  htmlFor="quest-unit"
+                  className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase"
+                >
                   Unit
                 </label>
                 <input
+                  id="quest-unit"
+                  name="unit"
                   value={unit}
                   onChange={(e) => setUnit(e.target.value)}
                   placeholder="min"
@@ -314,10 +352,10 @@ export default function NewQuestPage() {
             </div>
           )}
 
-          <div>
-            <label className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase">
+          <fieldset>
+            <legend className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase">
               Effort
-            </label>
+            </legend>
             <div className="grid grid-cols-3 gap-2">
               {DIFFICULTY_OPTIONS.map((option) => (
                 <OptionChip
@@ -333,12 +371,12 @@ export default function NewQuestPage() {
                 </OptionChip>
               ))}
             </div>
-          </div>
+          </fieldset>
 
-          <div>
-            <label className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase">
+          <fieldset>
+            <legend className="mb-2 block text-2xs tracking-wide text-ink-mute uppercase">
               When?
-            </label>
+            </legend>
             <div className="grid grid-cols-4 gap-2">
               {WINDOW_OPTIONS.map((option) => (
                 <OptionChip
@@ -351,7 +389,7 @@ export default function NewQuestPage() {
                 </OptionChip>
               ))}
             </div>
-          </div>
+          </fieldset>
 
           <Button
             variant="accent"
@@ -383,9 +421,10 @@ function OptionChip({
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "tappable rounded-xl border px-2 py-2.5 text-center text-xs font-medium transition-all",
+        "tappable min-h-11 rounded-xl border px-2 py-2.5 text-center text-xs font-medium transition-all",
         active ? "bg-surface-2" : "border-edge bg-surface text-ink-mute",
       )}
       style={

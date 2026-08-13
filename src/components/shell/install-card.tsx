@@ -69,7 +69,9 @@ export function InstallCard() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">Install the app</p>
           <p className="mt-1 text-xs leading-relaxed text-ink-mute">
-            Full screen, works offline, opens instantly from your home screen or dock.
+            Full screen and quick to open from your home screen or dock. If your
+            connection drops, the screen already open can keep recording changes;
+            reconnect to move between pages.
           </p>
           {installable ? (
             <Button

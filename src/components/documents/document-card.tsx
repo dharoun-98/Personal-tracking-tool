@@ -32,15 +32,15 @@ const COPY: Record<DocumentKind, { title: string; body: (data: DocumentData) => 
   report: {
     title: "Your starting report",
     body: () =>
-      "Where you stood across all seven domains on day one, in your own words. Four pages, fixed in time.",
+      "Your day-one baseline scores, plus your current setup and focus areas. Regenerated whenever you download it.",
     accent: "var(--color-cyan)",
   },
   promise: {
     title: "Promise to your future self",
     body: (data) =>
       data.profile.promise
-        ? `Your own words, sealed for ${data.profile.promiseHorizonMonths} months.`
-        : "You skipped the promise during setup — the letter still prints, with space to write it by hand.",
+        ? `Your currently saved words, looking ${data.profile.promiseHorizonMonths} months ahead.`
+        : "You have not written a promise yet — the letter still prints, with space to write it by hand.",
     accent: "var(--color-gold)",
   },
 };
@@ -81,7 +81,7 @@ export function DocumentCard({ kind }: { kind: DocumentKind }) {
             color: copy.accent,
           }}
         >
-          <Icon className="size-4.5" />
+          <Icon className="size-4.5" aria-hidden />
         </span>
 
         <div className="min-w-0 flex-1">
@@ -93,7 +93,7 @@ export function DocumentCard({ kind }: { kind: DocumentKind }) {
             onClick={handleDownload}
             disabled={state === "working"}
             className={cn(
-              "tappable mt-3 inline-flex items-center gap-1.5 rounded-xl px-3 py-2",
+              "tappable mt-3 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3",
               "text-xs font-semibold transition-colors disabled:opacity-60",
               state === "done"
                 ? "bg-success/15 text-success"
@@ -102,9 +102,9 @@ export function DocumentCard({ kind }: { kind: DocumentKind }) {
                   : "bg-surface-2 text-ink-dim hover:bg-surface-3 hover:text-ink",
             )}
           >
-            {state === "working" && <Loader2 className="size-3.5 animate-spin" />}
-            {state === "done" && <Check className="size-3.5" />}
-            {(state === "idle" || state === "error") && <Download className="size-3.5" />}
+            {state === "working" && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
+            {state === "done" && <Check className="size-3.5" aria-hidden />}
+            {(state === "idle" || state === "error") && <Download className="size-3.5" aria-hidden />}
             {state === "working"
               ? "Preparing…"
               : state === "done"
@@ -113,6 +113,13 @@ export function DocumentCard({ kind }: { kind: DocumentKind }) {
                   ? "Didn't work — try again"
                   : "Download PDF"}
           </button>
+          <span className="sr-only" role="status" aria-live="polite">
+            {state === "done"
+              ? `${copy.title} downloaded.`
+              : state === "error"
+                ? `${copy.title} could not be downloaded.`
+                : ""}
+          </span>
         </div>
       </div>
     </Panel>

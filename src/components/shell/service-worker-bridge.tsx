@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect } from "react";
+import { RefreshCw } from "lucide-react";
 import {
   detectPlatform,
   isStandalone,
   usePwa,
   type BeforeInstallPromptEvent,
 } from "@/lib/pwa";
+import { Button } from "@/components/ui/button";
 
 /**
  * Registers the service worker and wires up install/update signals.
@@ -15,8 +17,14 @@ import {
  * while still getting PWA behaviour.
  */
 export function ServiceWorkerBridge() {
-  const { setPrompt, setStandalone, setPlatform, setSwReady, setUpdateReady } =
-    usePwa();
+  const {
+    updateReady,
+    setPrompt,
+    setStandalone,
+    setPlatform,
+    setSwReady,
+    setUpdateReady,
+  } = usePwa();
 
   useEffect(() => {
     setPlatform(detectPlatform());
@@ -82,5 +90,22 @@ export function ServiceWorkerBridge() {
     };
   }, [setSwReady, setUpdateReady]);
 
-  return null;
+  if (!updateReady) return null;
+
+  return (
+    <aside
+      className="panel-glass fixed right-4 bottom-[calc(var(--nav-h)+var(--safe-bottom)+1rem)] z-[90] flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl p-3 shadow-lg md:bottom-6"
+      aria-live="polite"
+      aria-label="App update available"
+    >
+      <p className="min-w-0 text-xs leading-snug text-ink-mute">
+        <span className="block font-semibold text-ink">A fresh version is ready</span>
+        Refresh when you&apos;re ready.
+      </p>
+      <Button size="sm" onClick={() => window.location.reload()}>
+        <RefreshCw className="size-3.5" aria-hidden />
+        Refresh
+      </Button>
+    </aside>
+  );
 }

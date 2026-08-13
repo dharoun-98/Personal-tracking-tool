@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { AuthForm, AuthHeader } from "@/components/auth/auth-form";
+import { safeInternalReturnPath } from "@/lib/safe-return";
 
 export const metadata = { title: "Sign in" };
 
@@ -26,16 +27,18 @@ const ERRORS: Record<string, string> = {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; detail?: string }>;
+  searchParams: Promise<{ error?: string; detail?: string; next?: string }>;
 }) {
-  const { error, detail } = await searchParams;
+  const { error, detail, next } = await searchParams;
+  const safeNext = safeInternalReturnPath(next);
+  const backHref = next ? safeNext : "/";
   const message = error ? (ERRORS[error] ?? detail ?? "That didn't work. Try again below.") : null;
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-5 py-12 pad-safe-top">
       <Link
-        href="/"
-        className="tappable mb-8 inline-flex items-center gap-1.5 text-xs text-ink-mute transition-colors hover:text-ink"
+        href={backHref}
+        className="tappable mb-8 inline-flex min-h-11 items-center gap-1.5 text-xs text-ink-mute transition-colors hover:text-ink"
       >
         <ArrowLeft className="size-3.5" />
         Back
@@ -53,7 +56,7 @@ export default async function SignInPage({
         </div>
       )}
 
-      <AuthForm mode="sign-in" />
+      <AuthForm mode="sign-in" next={safeNext} />
     </main>
   );
 }

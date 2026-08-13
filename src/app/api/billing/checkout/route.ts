@@ -4,6 +4,59 @@ import { getSupabaseServer, getSupabaseAdmin } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
+interface StripePrice {
+  active: boolean;
+  currency: string;
+  unit_amount: number | null;
+  recurring: {
+    interval: "day" | "week" | "month" | "year";
+    interval_count: number;
+  } | null;
+}
+
+// Stripe amounts use ISO minor units, with this documented set of zero-decimal
+// currencies. All other currently supported presentment currencies use 2.
+const ZERO_DECIMAL_CURRENCIES = new Set([
+  "bif", "clp", "djf", "gnf", "jpy", "kmf", "krw", "mga", "pyg", "rwf",
+  "ugx", "vnd", "vuv", "xaf", "xof", "xpf",
+]);
+
+/** Public, non-sensitive display data for the plan configured for Checkout. */
+export async function GET() {
+  const config = readStripeConfig();
+  if (!config || !config.priceMonthly) {
+    return NextResponse.json({ configured: false, price: null });
+  }
+
+  const result = await stripeRequest<StripePrice>(
+    config,
+    `prices/${encodeURIComponent(config.priceMonthly)}`,
+  );
+  if (
+    !result.ok ||
+    !result.data.active ||
+    typeof result.data.unit_amount !== "number" ||
+    !result.data.currency ||
+    !result.data.recurring
+  ) {
+    return NextResponse.json({ configured: true, price: null });
+  }
+
+  return NextResponse.json(
+    {
+      configured: true,
+      price: {
+        unitAmount: result.data.unit_amount,
+        currency: result.data.currency,
+        minorUnit: ZERO_DECIMAL_CURRENCIES.has(result.data.currency.toLowerCase()) ? 0 : 2,
+        interval: result.data.recurring.interval,
+        intervalCount: result.data.recurring.interval_count,
+      },
+    },
+    { headers: { "Cache-Control": "public, max-age=300, stale-while-revalidate=3600" } },
+  );
+}
+
 /**
  * Opens a Stripe Checkout session for the signed-in player.
  *

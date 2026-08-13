@@ -83,7 +83,7 @@ export default function SettingsPage() {
     <main className="space-y-7 pt-6 pb-4">
       <Link
         href="/profile"
-        className="tappable inline-flex items-center gap-1.5 text-xs text-ink-mute transition-colors hover:text-ink"
+        className="tappable inline-flex min-h-11 items-center gap-1.5 text-xs text-ink-mute transition-colors hover:text-ink"
       >
         <ArrowLeft className="size-3.5" />
         Profile
@@ -100,7 +100,11 @@ export default function SettingsPage() {
       {/* ------------------------------------------------------------ Name */}
       <section>
         <SectionTitle>What we call you</SectionTitle>
+        <label htmlFor="display-name" className="sr-only">
+          Display name
+        </label>
         <input
+          id="display-name"
           value={draft.displayName}
           onChange={(e) => patch({ displayName: e.target.value })}
           maxLength={40}
@@ -119,6 +123,7 @@ export default function SettingsPage() {
               <button
                 key={style.id}
                 type="button"
+                aria-pressed={active}
                 onClick={() => patch({ motivationStyle: style.id })}
                 className={cn(
                   "tappable w-full rounded-2xl border p-3.5 text-left transition-all",
@@ -157,14 +162,15 @@ export default function SettingsPage() {
       {/* ------------------------------------------------------- Daily time */}
       <section>
         <SectionTitle>Daily time</SectionTitle>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {TIME_BUDGETS.map((option) => (
             <button
               key={option.minutes}
               type="button"
+              aria-pressed={draft.dailyMinutes === option.minutes}
               onClick={() => patch({ dailyMinutes: option.minutes })}
               className={cn(
-                "tappable rounded-xl border py-3 text-xs font-semibold transition-all",
+                "tappable min-h-11 rounded-xl border py-3 text-xs font-semibold transition-all",
                 draft.dailyMinutes === option.minutes
                   ? "border-violet bg-violet/12 text-ink"
                   : "border-edge bg-surface text-ink-mute",
@@ -192,6 +198,7 @@ export default function SettingsPage() {
               <button
                 key={domain.id}
                 type="button"
+                aria-pressed={active}
                 onClick={() => togglePriority(domain.id)}
                 disabled={disabled}
                 className={cn(
@@ -273,6 +280,7 @@ export default function SettingsPage() {
                     <p className="text-xs font-semibold">{domain.name}</p>
                   </div>
                   <textarea
+                    aria-label={`${domain.name}: what winning looks like`}
                     value={draft.visions[id] ?? ""}
                     onChange={(e) =>
                       patch({ visions: { ...draft.visions, [id]: e.target.value } })
@@ -297,6 +305,7 @@ export default function SettingsPage() {
             In {draft.promiseHorizonMonths} months, I will have…
           </p>
           <textarea
+            aria-label="Promise to your future self"
             value={draft.promise}
             onChange={(e) => patch({ promise: e.target.value })}
             rows={4}
@@ -309,9 +318,10 @@ export default function SettingsPage() {
               <button
                 key={months}
                 type="button"
+                aria-pressed={draft.promiseHorizonMonths === months}
                 onClick={() => patch({ promiseHorizonMonths: months })}
                 className={cn(
-                  "tappable flex-1 rounded-xl border py-2 text-xs font-semibold transition-all",
+                  "tappable min-h-11 flex-1 rounded-xl border py-2 text-xs font-semibold transition-all",
                   draft.promiseHorizonMonths === months
                     ? "border-gold bg-gold/12 text-gold-ink"
                     : "border-edge bg-surface text-ink-mute",
@@ -400,6 +410,7 @@ function Choice({
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
         "tappable rounded-2xl border p-3.5 text-left transition-all",
